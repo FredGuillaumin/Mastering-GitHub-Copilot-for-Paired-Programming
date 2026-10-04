@@ -85,16 +85,23 @@ function buildDial() {
 
 let shownMinute = '';
 
-function renderSecondHand(now) {
+// Sweeping second hand: a 60 s CSS rotation (smooth and cheap), re-synchronised with the
+// real clock every minute and whenever the app comes back to the foreground.
+function syncSecondHand() {
   $('#analog').classList.toggle('no-second', !state.secondHand);
-  if (state.secondHand) $('#hand-s').setAttribute('transform', `rotate(${now.getSeconds() * 6} 100 100)`);
+  const hand = $('#hand-s');
+  const now = new Date();
+  hand.style.animation = 'none';
+  void hand.getBoundingClientRect(); // restart the animation
+  hand.style.animation = '';
+  hand.style.animationDelay = `-${now.getSeconds() + now.getMilliseconds() / 1000}s`;
 }
 
 function renderClock(now, force) {
-  if (state.clockStyle === 'analog') renderSecondHand(now);
   const key = `${now.getHours()}:${now.getMinutes()}`;
   if (key === shownMinute && !force) return;
   shownMinute = key;
+  syncSecondHand();
   $('.clock').classList.toggle('analog', state.clockStyle === 'analog');
   $('.clock').classList.toggle('digital', state.clockStyle !== 'analog');
   $('#hhmm').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -712,7 +719,7 @@ function wireUi() {
   $('#second-hand').addEventListener('change', (e) => {
     state.secondHand = e.target.checked;
     store.set('secondHand', state.secondHand);
-    renderSecondHand(new Date());
+    syncSecondHand();
   });
   $('#color-icons').addEventListener('change', (e) => {
     state.colorIcons = e.target.checked;
@@ -749,6 +756,7 @@ function wireUi() {
     if (document.visibilityState === 'visible') {
       updateWakeLock();
       tick();
+      syncSecondHand();
       renderNextAlarm(new Date());
       maybeRefreshWeather();
     }
