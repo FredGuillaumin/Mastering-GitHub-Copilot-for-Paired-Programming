@@ -536,47 +536,18 @@ function renderWeather() {
     $('#w-desc').textContent = loc ? 'Chargement…' : 'Choisissez un lieu dans les réglages';
     return;
   }
-  const { current, hourly, daily } = w.data;
+  const { current } = w.data;
   const [label, kind] = describe(current.weather_code);
   $('#w-icon').innerHTML = weatherIcon(kind, current.is_day);
   $('#w-temp').textContent = `${Math.round(current.temperature_2m)}°`;
   $('#w-desc').textContent = label;
 
-  const details = [];
-  if (daily) {
-    details.push(`${Math.round(daily.temperature_2m_min[0])}° / ${Math.round(daily.temperature_2m_max[0])}°`);
-  }
-  details.push(`ressenti ${Math.round(current.apparent_temperature)}°`);
-  details.push(`vent ${Math.round(current.wind_speed_10m)} km/h`);
-  details.push(`humidité ${Math.round(current.relative_humidity_2m)} %`);
-  if (daily && daily.sunrise) {
-    details.push(`lever ${daily.sunrise[0].slice(11)} · coucher ${daily.sunset[0].slice(11)}`);
-  }
-  const det = $('#w-details');
-  det.replaceChildren(...details.map((t) => { const s = document.createElement('span'); s.textContent = t; return s; }));
-
-  // Next hours
-  const hours = $('#w-hours');
-  hours.replaceChildren();
-  if (hourly) {
-    const start = hourly.time.findIndex((t) => t > current.time);
-    for (let i = start; i >= 0 && i < start + 6 && i < hourly.time.length; i++) {
-      const h = document.createElement('div');
-      h.className = 'hour';
-      const hh = document.createElement('div');
-      hh.textContent = `${Number(hourly.time[i].slice(11, 13))}h`;
-      const ic = document.createElement('div');
-      ic.innerHTML = weatherIcon(describe(hourly.weather_code[i])[1], hourly.is_day[i]);
-      const tt = document.createElement('div');
-      tt.textContent = `${Math.round(hourly.temperature_2m[i])}°`;
-      const pp = document.createElement('div');
-      pp.className = 'p';
-      const prob = hourly.precipitation_probability ? hourly.precipitation_probability[i] : null;
-      pp.textContent = prob != null && prob >= 20 ? `${prob} %` : '';
-      h.append(hh, ic.firstChild, tt, pp);
-      hours.append(h);
-    }
-  }
+  const details = [
+    `ressenti ${Math.round(current.apparent_temperature)}°`,
+    `vent ${Math.round(current.wind_speed_10m)} km/h`,
+    `humidité ${Math.round(current.relative_humidity_2m)} %`,
+  ];
+  $('#w-details').replaceChildren(...details.map((t) => { const el = document.createElement('span'); el.textContent = t; return el; }));
 
   const age = Date.now() - w.fetchedAt;
   const t = new Date(w.fetchedAt);
@@ -594,9 +565,7 @@ async function fetchWeather() {
   const url = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${loc.lat}&longitude=${loc.lon}`
     + '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day'
-    + '&hourly=temperature_2m,weather_code,precipitation_probability,is_day'
-    + '&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset'
-    + '&timezone=auto&forecast_days=2';
+    + '&timezone=auto';
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(res.status);
