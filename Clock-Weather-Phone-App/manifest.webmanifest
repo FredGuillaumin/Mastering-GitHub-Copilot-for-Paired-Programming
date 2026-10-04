@@ -1,6 +1,6 @@
 {
   "name": "Horloge Météo",
-  "short_name": "Horloge",
+  "short_name": "Horloge Météo",
   "description": "Horloge et météo en noir et blanc, très peu lumineuses, avec réveil.",
   "lang": "fr",
   "start_url": "./",

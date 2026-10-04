@@ -28,10 +28,10 @@ Une application web ne peut pas se lancer toute seule : c'est le téléphone qui
 
 1. Nouvelle macro.
 2. Déclencheurs : *Alimentation connectée* **et** *Orientation de l'appareil → Paysage* (les deux, pour que l'ordre « brancher puis tourner » ou « tourner puis brancher » fonctionne).
-3. Actions : *Lancer une application → Horloge* (l'application installée depuis Chrome apparaît dans la liste).
+3. Actions : *Lancer une application → Horloge Météo* (l'application installée depuis Chrome apparaît dans la liste ; à défaut, action *Lancer un raccourci* sur l'icône de l'écran d'accueil).
 4. Contraintes : *Alimentation connectée* et *Orientation de l'appareil : Paysage*.
 
-Sur Samsung, *Paramètres → Modes et routines* permet aussi « Si : en charge → Alors : ouvrir l'application Horloge » (sans condition d'orientation).
+Sur Samsung, *Paramètres → Modes et routines* permet aussi « Si : en charge → Alors : ouvrir l'application Horloge Météo » (sans condition d'orientation).
 
 **iPhone — app Raccourcis**
 
