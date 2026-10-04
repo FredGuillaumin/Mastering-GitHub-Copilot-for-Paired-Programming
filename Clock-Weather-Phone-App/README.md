@@ -5,8 +5,8 @@ Application web (PWA) pour un téléphone posé sur la table de nuit :
 - **Horloge analogique** (ou numérique, au choix dans les réglages), sans secondes, sur une moitié de l'écran ; **météo** sur l'autre.
 - **Suit l'orientation** : horloge en haut / météo en bas en portrait, côte à côte en paysage.
 - Fond noir, **très peu lumineux** (luminosité réglable, 35 % par défaut). **Couleur paramétrable** : gris par défaut, rouge (préserve la vision de nuit), ambre, vert, bleu ou couleur libre.
-- **Réveils** : autant que voulu, choix des jours (sans jour = sonne une seule fois), son progressif, vibration, répétition 9 min.
-- Météo [Open-Meteo](https://open-meteo.com) (gratuit, sans clé) : température, ressenti, min/max, vent, humidité, lever/coucher du soleil, 6 prochaines heures. Actualisée toutes les 15 min, dernières données conservées hors ligne.
+- **Réveils** : autant que voulu, choix des jours (sans jour = sonne une seule fois), volume progressif, vibration, répétition 9 min. Son au choix : **bips** ou **radio française** (France Inter, franceinfo, France Culture, France Musique, FIP, Mouv', RTL, Europe 1, RMC, Radio Classique, TSF Jazz, NRJ, RFM, Skyrock, Radio FG) ou n'importe quel flux en https. Sans réseau ou si la radio ne démarre pas en 12 s, les bips prennent le relais.
+- **Météo du moment** [Open-Meteo](https://open-meteo.com) (gratuit, sans clé) : ciel, température, ressenti, vent, humidité. Actualisée toutes les 15 min, dernières données conservées hors ligne.
 - **Mode table de nuit** : l'écran reste allumé tant que le téléphone est **en charge** et se met en veille normalement quand on le débranche (réglable). Fonctionne hors ligne une fois installée.
 
 ## Installation sur le téléphone
@@ -45,4 +45,4 @@ Sur Samsung, *Paramètres → Modes et routines* permet aussi « Si : en charge 
 
 ## Limites (important pour le réveil)
 
-Une application web ne peut pas réveiller un téléphone éteint ou verrouillé : **l'application doit rester ouverte au premier plan** pour que le réveil sonne. Le navigateur exige aussi **un premier toucher** pour autoriser le son : si un réveil est programmé et que le son n'est pas encore autorisé, un petit message le rappelle en bas de l'écran. Laisser le téléphone branché avec l'application affichée (elle garde l'écran allumé, très faiblement). Vérifier aussi que le volume « média » n'est pas coupé.
+Une application web ne peut pas réveiller un téléphone éteint ou verrouillé : **l'application doit rester ouverte au premier plan** pour que le réveil sonne. Le navigateur exige aussi **un premier toucher** pour autoriser le son (touchez l'écran une fois après l'ouverture ; aucun message ne s'affiche en veille). Laisser le téléphone branché avec l'application affichée (elle garde l'écran allumé, très faiblement). Vérifier aussi que le volume « média » n'est pas coupé.
