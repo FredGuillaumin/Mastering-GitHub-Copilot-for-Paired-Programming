@@ -72,8 +72,8 @@ button, input { font: inherit; color: inherit; }
 }
 .clock { display: flex; flex-direction: column; align-items: center; }
 .analog {
-  width: min(64cqh, 78cqw);
-  height: min(64cqh, 78cqw);
+  width: min(92cqh, 94cqw);
+  height: min(92cqh, 94cqw);
   stroke-width: 1.6;
 }
 .analog .face { stroke: var(--fg-faint); stroke-width: 1.2; }
@@ -83,8 +83,10 @@ button, input { font: inherit; color: inherit; }
 .analog .hand.hour { stroke-width: 6; }
 .analog .hand.minute { stroke-width: 3.5; }
 .analog .pivot { fill: var(--fg); stroke: none; }
+.analog .second { stroke: #e0352b; stroke-width: 1.6; }
+.analog .second circle { fill: #e0352b; stroke: none; }
+.analog.no-second .second { display: none; }
 .clock.digital .analog, .clock.analog .time { display: none; }
-.clock.analog .date { margin-top: 0.35em; }
 
 .seg { display: flex; border: 1px solid #262626; border-radius: 10px; overflow: hidden; }
 .seg button { background: none; border: 0; padding: 8px 12px; min-height: 40px; color: #666; }
@@ -105,13 +107,13 @@ button, input { font: inherit; color: inherit; }
 .swatch.on, .swatches input.on { border-color: #ccc; }
 .swatches input:not(.on)::-webkit-color-swatch { background: conic-gradient(#c4392b, #c8892a, #4fa86a, #5a8fd0, #a05ad0, #c4392b) !important; }
 .date {
-  margin-top: 0.5em;
+  margin-top: 1.1em;
   font-size: 1.05em;
   color: var(--fg-soft);
 }
 .date::first-letter { text-transform: uppercase; }
 .next-alarm {
-  margin-top: 0.7em;
+  margin-top: 0.4em;
   font-size: 0.85em;
   color: var(--fg-soft);
   display: inline-flex;
