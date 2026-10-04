@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Horloge Météo">
+  <title>Horloge Météo</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <section class="panel" id="clock-panel">
+      <div class="clock">
+        <svg id="analog" class="analog" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="face" cx="100" cy="100" r="96"/>
+          <g id="ticks"></g>
+          <line id="hand-h" class="hand hour" x1="100" y1="108" x2="100" y2="52"/>
+          <line id="hand-m" class="hand minute" x1="100" y1="112" x2="100" y2="22"/>
+          <circle class="pivot" cx="100" cy="100" r="3.5"/>
+        </svg>
+        <div id="digital" class="time"><span id="hhmm">--:--</span></div>
+        <div id="date" class="date"></div>
+        <div id="next-alarm" class="next-alarm" hidden></div>
+      </div>
+    </section>
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <section class="panel" id="weather-panel">
+      <div class="weather">
+        <div id="w-place" class="place">Météo</div>
+        <div class="now">
+          <div id="w-icon" class="icon" aria-hidden="true"></div>
+          <div id="w-temp" class="temp">--°</div>
+        </div>
+        <div id="w-desc" class="desc">Chargement…</div>
+        <div id="w-details" class="details"></div>
+        <div id="w-hours" class="hours"></div>
+        <div id="w-updated" class="updated"></div>
+      </div>
+    </section>
+
+    <div id="sound-hint" class="sound-hint" hidden>Touchez l'écran pour activer le son du réveil</div>
+
+    <button id="open-settings" class="corner-btn" aria-label="Réglages">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+    </button>
+  </main>
+
+  <!-- Ringing alarm -->
+  <div id="ring" class="overlay ring" hidden>
+    <div class="ring-time" id="ring-time">--:--</div>
+    <div class="ring-label" id="ring-label">Réveil</div>
+    <div class="ring-actions">
+      <button id="snooze" class="big-btn">Répéter<br><small>9 min</small></button>
+      <button id="stop" class="big-btn">Arrêter</button>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings" class="overlay settings" hidden>
+    <div class="settings-inner">
+      <header class="settings-head">
+        <h1>Réglages</h1>
+        <button id="close-settings" class="text-btn">Fermer</button>
+      </header>
+
+      <section>
+        <h2>Affichage</h2>
+        <label class="row">
+          <span>Luminosité</span>
+          <input id="brightness" type="range" min="5" max="100" step="1">
+        </label>
+        <div class="row">
+          <span>Horloge</span>
+          <div class="seg" role="group" aria-label="Style d'horloge">
+            <button type="button" data-style="analog">Analogique</button>
+            <button type="button" data-style="digital">Numérique</button>
+          </div>
+        </div>
+        <div class="row">
+          <span>Couleur</span>
+          <div class="swatches" id="swatches">
+            <button type="button" class="swatch" data-color="#a0a0a0" aria-label="Gris"></button>
+            <button type="button" class="swatch" data-color="#c4392b" aria-label="Rouge"></button>
+            <button type="button" class="swatch" data-color="#c8892a" aria-label="Ambre"></button>
+            <button type="button" class="swatch" data-color="#4fa86a" aria-label="Vert"></button>
+            <button type="button" class="swatch" data-color="#5a8fd0" aria-label="Bleu"></button>
+            <input type="color" id="custom-color" aria-label="Couleur personnalisée">
+          </div>
+        </div>
+        <label class="row">
+          <span>Écran allumé seulement en charge</span>
+          <input id="only-charging" type="checkbox">
+        </label>
+        <button id="fullscreen" class="text-btn">Plein écran</button>
+      </section>
+
+      <section>
+        <h2>Réveils</h2>
+        <div id="alarm-list"></div>
+        <div class="btn-row">
+          <button id="add-alarm" class="text-btn">+ Ajouter un réveil</button>
+          <button id="test-sound" class="text-btn">Tester le son</button>
+        </div>
+        <p class="hint">L'application doit rester ouverte (écran allumé, tout faiblement) pour que le réveil sonne. Branchez le téléphone pour la nuit.</p>
+      </section>
+
+      <section>
+        <h2>Lieu de la météo</h2>
+        <div id="loc-current" class="hint"></div>
+        <button id="use-gps" class="text-btn">Utiliser ma position</button>
+        <form id="city-form" class="city-form">
+          <input id="city-input" type="search" placeholder="Rechercher une ville" autocomplete="off">
+          <button class="text-btn" type="submit">OK</button>
+        </form>
+        <div id="city-results"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
