@@ -17,6 +17,7 @@ const state = {
   brightness: store.get('brightness', 35),     // %
   clockStyle: store.get('clockStyle', 'analog'), // 'analog' | 'digital'
   color: store.get('color', '#a0a0a0'),          // text color
+  colorIcons: store.get('colorIcons', true),     // weather symbol in natural colors
   onlyCharging: store.get('onlyCharging', true),  // release the screen when unplugged
   alarms: store.get('alarms', []),             // [{id, time:'07:00', days:[1..5], enabled, label}]
   location: store.get('location', null),       // {lat, lon, name, auto}
@@ -495,7 +496,7 @@ const WMO = {
   95: ['Orage', 'storm'], 96: ['Orage avec grêle', 'storm'], 99: ['Orage avec grêle', 'storm'],
 };
 
-const CLOUD = '<path class="mask" d="M18 46H46A10 10 0 0 0 46 26A14 14 0 0 0 19 24A11 11 0 0 0 18 46Z"/>';
+const CLOUD = '<path class="mask cloud" d="M18 46H46A10 10 0 0 0 46 26A14 14 0 0 0 19 24A11 11 0 0 0 18 46Z"/>';
 const sun = (cx, cy, r) => {
   let rays = '';
   for (let i = 0; i < 8; i++) {
@@ -504,10 +505,10 @@ const sun = (cx, cy, r) => {
     const x2 = cx + Math.cos(a) * (r + 9), y2 = cy + Math.sin(a) * (r + 9);
     rays += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
   }
-  return `<circle cx="${cx}" cy="${cy}" r="${r}"/>${rays}`;
+  return `<g class="sun"><circle cx="${cx}" cy="${cy}" r="${r}"/>${rays}</g>`;
 };
 const moon = (s = 1, tx = 0, ty = 0) =>
-  `<path transform="translate(${tx} ${ty}) scale(${s})" d="M40 12A20 20 0 1 0 52 44A16 16 0 0 1 40 12Z"/>`;
+  `<path class="moon" transform="translate(${tx} ${ty}) scale(${s})" d="M40 12A20 20 0 1 0 52 44A16 16 0 0 1 40 12Z"/>`;
 const up = (inner) => `<g transform="translate(0 -8)">${inner}</g>`;
 
 function weatherIcon(kind, isDay) {
@@ -516,11 +517,11 @@ function weatherIcon(kind, isDay) {
     case 'clear': body = isDay ? sun(32, 32, 11) : moon(); break;
     case 'partly': body = (isDay ? sun(24, 22, 8) : moon(0.6, 6, 2)) + CLOUD; break;
     case 'cloudy': body = CLOUD; break;
-    case 'fog': body = up(CLOUD) + '<line x1="14" y1="48" x2="50" y2="48"/><line x1="18" y1="55" x2="46" y2="55"/>'; break;
-    case 'drizzle': body = up(CLOUD) + '<line x1="24" y1="46" x2="22" y2="50"/><line x1="34" y1="46" x2="32" y2="50"/><line x1="44" y1="46" x2="42" y2="50"/>'; break;
-    case 'rain': body = up(CLOUD) + '<line x1="24" y1="45" x2="20" y2="56"/><line x1="34" y1="45" x2="30" y2="56"/><line x1="44" y1="45" x2="40" y2="56"/>'; break;
-    case 'snow': body = up(CLOUD) + '<circle cx="22" cy="50" r="1.4"/><circle cx="32" cy="54" r="1.4"/><circle cx="42" cy="50" r="1.4"/><circle cx="27" cy="58" r="1.4"/><circle cx="37" cy="58" r="1.4"/>'; break;
-    case 'storm': body = up(CLOUD) + '<path d="M34 42L27 52H35L30 61"/>'; break;
+    case 'fog': body = up(CLOUD) + '<g class="fog"><line x1="14" y1="48" x2="50" y2="48"/><line x1="18" y1="55" x2="46" y2="55"/></g>'; break;
+    case 'drizzle': body = up(CLOUD) + '<g class="rain"><line x1="24" y1="46" x2="22" y2="50"/><line x1="34" y1="46" x2="32" y2="50"/><line x1="44" y1="46" x2="42" y2="50"/></g>'; break;
+    case 'rain': body = up(CLOUD) + '<g class="rain"><line x1="24" y1="45" x2="20" y2="56"/><line x1="34" y1="45" x2="30" y2="56"/><line x1="44" y1="45" x2="40" y2="56"/></g>'; break;
+    case 'snow': body = up(CLOUD) + '<g class="snow"><circle cx="22" cy="50" r="1.4"/><circle cx="32" cy="54" r="1.4"/><circle cx="42" cy="50" r="1.4"/><circle cx="27" cy="58" r="1.4"/><circle cx="37" cy="58" r="1.4"/></g>'; break;
+    case 'storm': body = up(CLOUD) + '<path class="bolt" d="M34 42L27 52H35L30 61"/>'; break;
     default: body = CLOUD;
   }
   return `<svg viewBox="0 0 64 64" aria-hidden="true">${body}</svg>`;
@@ -539,6 +540,7 @@ function renderWeather() {
   const { current } = w.data;
   const [label, kind] = describe(current.weather_code);
   $('#w-icon').innerHTML = weatherIcon(kind, current.is_day);
+  $('#w-icon').classList.toggle('colored', state.colorIcons);
   $('#w-temp').textContent = `${Math.round(current.temperature_2m)}°`;
   $('#w-desc').textContent = label;
 
@@ -661,6 +663,7 @@ async function searchCity(query) {
 function openSettings() {
   $('#brightness').value = state.brightness;
   $('#only-charging').checked = state.onlyCharging;
+  $('#color-icons').checked = state.colorIcons;
   renderStyleButtons();
   renderColorChoice();
   renderAlarmList();
@@ -698,6 +701,11 @@ function wireUi() {
   }));
   document.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => setColor(b.dataset.color)));
   $('#custom-color').addEventListener('input', (e) => setColor(e.target.value));
+  $('#color-icons').addEventListener('change', (e) => {
+    state.colorIcons = e.target.checked;
+    store.set('colorIcons', state.colorIcons);
+    renderWeather();
+  });
   $('#only-charging').addEventListener('change', (e) => {
     state.onlyCharging = e.target.checked;
     store.set('onlyCharging', state.onlyCharging);
