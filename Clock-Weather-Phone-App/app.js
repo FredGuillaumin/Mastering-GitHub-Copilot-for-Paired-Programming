@@ -159,18 +159,8 @@ let audioCtx = null;
 
 function unlockAudio() {
   const AC = window.AudioContext || window.webkitAudioContext;
-  if (!audioCtx && AC) {
-    audioCtx = new AC();
-    audioCtx.addEventListener('statechange', renderSoundHint);
-  }
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().then(renderSoundHint, () => {});
-  renderSoundHint();
-}
-
-// Browsers only allow sound after a first touch: remind it if an alarm is set.
-function renderSoundHint() {
-  const locked = !audioCtx || audioCtx.state !== 'running';
-  $('#sound-hint').hidden = !(locked && state.alarms.some((a) => a.enabled));
+  if (!audioCtx && AC) audioCtx = new AC();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
 }
 
 function beep(at, freq, dur, volume) {
@@ -202,7 +192,7 @@ const lastFired = {};                  // alarm id -> 'YYYY-M-D HH:MM'
 let ringing = null;                    // {alarm, startedAt, timer}
 let snooze = null;                     // {until, alarm}
 
-function saveAlarms() { store.set('alarms', state.alarms); renderNextAlarm(new Date()); renderSoundHint(); }
+function saveAlarms() { store.set('alarms', state.alarms); renderNextAlarm(new Date()); }
 
 function alarmMatches(alarm, now) {
   if (!alarm.enabled) return false;

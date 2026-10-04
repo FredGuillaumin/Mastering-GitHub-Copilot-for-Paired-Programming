@@ -45,4 +45,4 @@ Sur Samsung, *Paramètres → Modes et routines* permet aussi « Si : en charge 
 
 ## Limites (important pour le réveil)
 
-Une application web ne peut pas réveiller un téléphone éteint ou verrouillé : **l'application doit rester ouverte au premier plan** pour que le réveil sonne. Le navigateur exige aussi **un premier toucher** pour autoriser le son : si un réveil est programmé et que le son n'est pas encore autorisé, un petit message le rappelle en bas de l'écran. Laisser le téléphone branché avec l'application affichée (elle garde l'écran allumé, très faiblement). Vérifier aussi que le volume « média » n'est pas coupé.
+Une application web ne peut pas réveiller un téléphone éteint ou verrouillé : **l'application doit rester ouverte au premier plan** pour que le réveil sonne. Le navigateur exige aussi **un premier toucher** pour autoriser le son (touchez l'écran une fois après l'ouverture ; aucun message ne s'affiche en veille). Laisser le téléphone branché avec l'application affichée (elle garde l'écran allumé, très faiblement). Vérifier aussi que le volume « média » n'est pas coupé.

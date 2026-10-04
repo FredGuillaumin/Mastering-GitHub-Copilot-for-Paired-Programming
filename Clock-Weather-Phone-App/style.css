@@ -86,15 +86,6 @@ button, input { font: inherit; color: inherit; }
 .clock.digital .analog, .clock.analog .time { display: none; }
 .clock.analog .date { margin-top: 0.35em; }
 
-.sound-hint {
-  position: absolute;
-  left: calc(env(safe-area-inset-left) + 14px);
-  bottom: calc(env(safe-area-inset-bottom) + 20px);
-  right: 70px;
-  font-size: 13px;
-  color: var(--fg-faint);
-}
-
 .seg { display: flex; border: 1px solid #262626; border-radius: 10px; overflow: hidden; }
 .seg button { background: none; border: 0; padding: 8px 12px; min-height: 40px; color: #666; }
 .seg button.on { background: #262626; color: #bbb; }
