@@ -151,12 +151,29 @@ function updateWakeLock() {
   else if (wakeLock) { wakeLock.release(); wakeLock = null; }
 }
 
+// Battery symbol under the weather: level, yellow bolt while charging, red when low.
+function renderBattery(battery) {
+  const el = $('#battery');
+  if (typeof battery.level !== 'number' || Number.isNaN(battery.level)) { el.hidden = true; return; }
+  const pct = Math.round(battery.level * 100);
+  const w = Math.max(1, 18 * battery.level).toFixed(1);
+  el.innerHTML = '<svg class="cell" viewBox="0 0 28 14" aria-hidden="true">'
+    + '<rect x="1" y="1" width="22" height="12" rx="2.5"/><rect class="nub" x="24" y="4.5" width="2.5" height="5" rx="1"/>'
+    + `<rect class="level" x="3" y="3" width="${w}" height="8" rx="1"/></svg>`
+    + (battery.charging ? '<svg class="bolt" viewBox="0 0 12 16" aria-hidden="true"><path d="M7 0L1 9h4l-1 7 7-10H7z"/></svg>' : '');
+  el.append(`${pct} %`);
+  el.classList.toggle('low', !battery.charging && pct <= 15);
+  el.setAttribute('aria-label', `Batterie ${pct} %${battery.charging ? ', en charge' : ''}`);
+  el.hidden = false;
+}
+
 async function watchBattery() {
   if (!navigator.getBattery) return;
   try {
     const battery = await navigator.getBattery();
-    const update = () => { charging = battery.charging; updateWakeLock(); };
+    const update = () => { charging = battery.charging; updateWakeLock(); renderBattery(battery); };
     battery.addEventListener('chargingchange', update);
+    battery.addEventListener('levelchange', () => renderBattery(battery));
     update();
   } catch { /* not available */ }
 }

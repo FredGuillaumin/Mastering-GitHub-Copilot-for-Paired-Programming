@@ -119,16 +119,28 @@ button, input { font: inherit; color: inherit; }
   color: var(--fg-soft);
 }
 .date::first-letter { text-transform: uppercase; }
-.next-alarm {
+/* Next alarm and battery, on one line under the date */
+.status {
   margin-top: 0.4em;
   font-size: 0.85em;
   color: var(--fg-soft);
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  column-gap: 1.4em;
+}
+.next-alarm, .battery {
   display: inline-flex;
   align-items: center;
   gap: 0.35em;
+  white-space: nowrap;
 }
 .next-alarm svg { width: 1em; height: 1em; }
-.next-alarm[hidden] { display: none; }
+.next-alarm[hidden], .battery[hidden] { display: none; }
+.battery .cell { width: 2em; height: 1em; stroke-width: 1.4; }
+.battery .cell .level, .battery .cell .nub { fill: currentColor; stroke: none; }
+.battery .bolt { width: 0.75em; height: 1em; fill: #f5c400; stroke: none; }
+.battery.low { color: #e0352b; }
 
 /* ---------- Weather ---------- */
 .place {
