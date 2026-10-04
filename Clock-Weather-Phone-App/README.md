@@ -2,7 +2,7 @@
 
 Application web (PWA) pour un téléphone posé sur la table de nuit :
 
-- **Horloge analogique** avec **trotteuse rouge** (désactivable), ou numérique sans secondes, au choix dans les réglages, sur une moitié de l'écran ; **météo** sur l'autre.
+- **Horloge analogique** avec **trotteuse rouge** (désactivable), ou numérique sans secondes, au choix dans les réglages, sur une moitié de l'écran ; **météo**, date et prochain réveil sur l'autre.
 - **Suit l'orientation** : horloge en haut / météo en bas en portrait, côte à côte en paysage.
 - Fond noir, **très peu lumineux** (luminosité réglable, 35 % par défaut). **Couleur paramétrable** : gris par défaut, rouge (préserve la vision de nuit), ambre, vert, bleu ou couleur libre. Symbole météo en couleurs (soleil jaune, pluie bleue…), désactivable.
 - **Réveils** : autant que voulu, choix des jours (sans jour = sonne une seule fois), volume progressif, vibration, répétition 9 min. Son au choix : **bips** ou **radio française** (France Inter, franceinfo, France Culture, France Musique, FIP, Mouv', RTL, Europe 1, RMC, Radio Classique, TSF Jazz, NRJ, RFM, Skyrock, Radio FG) ou n'importe quel flux en https. Sans réseau ou si la radio ne démarre pas en 12 s, les bips prennent le relais.

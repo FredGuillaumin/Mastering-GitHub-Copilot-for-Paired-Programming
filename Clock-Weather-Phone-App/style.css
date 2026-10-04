@@ -87,21 +87,6 @@ button, input { font: inherit; color: inherit; }
 .analog .second circle { fill: #e0352b; stroke: none; }
 .analog.no-second .second { display: none; }
 .clock.digital .analog, .clock.analog .time { display: none; }
-/* Analog: the dial fills the half. Date and next alarm sit inside it, between the tip of the
-   hour hand (75 % of the height) and the 6 o'clock mark, so only the minute hand ever crosses them. */
-.clock.analog { position: relative; width: auto; padding: 0; }
-.clock.analog .analog { position: relative; z-index: 1; } /* hands drawn above the text */
-.clock.analog .date,
-.clock.analog .next-alarm {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  margin: 0;
-  white-space: nowrap;
-  line-height: 1.1;
-}
-.clock.analog .date { top: 76.5%; font-size: 0.8em; }
-.clock.analog .next-alarm { top: 82.5%; font-size: 0.68em; }
 
 .seg { display: flex; border: 1px solid #262626; border-radius: 10px; overflow: hidden; }
 .seg button { background: none; border: 0; padding: 8px 12px; min-height: 40px; color: #666; }
@@ -122,13 +107,13 @@ button, input { font: inherit; color: inherit; }
 .swatch.on, .swatches input.on { border-color: #ccc; }
 .swatches input:not(.on)::-webkit-color-swatch { background: conic-gradient(#c4392b, #c8892a, #4fa86a, #5a8fd0, #a05ad0, #c4392b) !important; }
 .date {
-  margin-top: 0.5em;
+  margin-top: 1.1em;
   font-size: 1.05em;
   color: var(--fg-soft);
 }
 .date::first-letter { text-transform: uppercase; }
 .next-alarm {
-  margin-top: 0.7em;
+  margin-top: 0.4em;
   font-size: 0.85em;
   color: var(--fg-soft);
   display: inline-flex;
