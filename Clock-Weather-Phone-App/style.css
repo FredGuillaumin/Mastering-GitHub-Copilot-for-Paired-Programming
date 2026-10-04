@@ -83,7 +83,14 @@ button, input { font: inherit; color: inherit; }
 .analog .hand.hour { stroke-width: 6; }
 .analog .hand.minute { stroke-width: 3.5; }
 .analog .pivot { fill: var(--fg); stroke: none; }
-.analog .second { stroke: #e0352b; stroke-width: 1.6; }
+.analog .second {
+  stroke: #e0352b;
+  stroke-width: 1.6;
+  transform-box: view-box;
+  transform-origin: 100px 100px;
+  animation: sweep 60s linear infinite;
+}
+@keyframes sweep { to { transform: rotate(360deg); } }
 .analog .second circle { fill: #e0352b; stroke: none; }
 .analog.no-second .second { display: none; }
 .clock.digital .analog, .clock.analog .time { display: none; }
@@ -121,6 +128,7 @@ button, input { font: inherit; color: inherit; }
   gap: 0.35em;
 }
 .next-alarm svg { width: 1em; height: 1em; }
+.next-alarm[hidden] { display: none; }
 
 /* ---------- Weather ---------- */
 .place {
