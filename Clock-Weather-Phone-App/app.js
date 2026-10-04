@@ -16,6 +16,7 @@ const store = {
 const state = {
   brightness: store.get('brightness', 35),     // %
   clockStyle: store.get('clockStyle', 'analog'), // 'analog' | 'digital'
+  color: store.get('color', '#a0a0a0'),          // text color
   onlyCharging: store.get('onlyCharging', true),  // release the screen when unplugged
   alarms: store.get('alarms', []),             // [{id, time:'07:00', days:[1..5], enabled, label}]
   location: store.get('location', null),       // {lat, lon, name, auto}
@@ -28,6 +29,36 @@ const DAY_LETTERS = ['D', 'L', 'M', 'M', 'J', 'V', 'S']; // index = Date#getDay(
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];                 // displayed Monday first
 
 /* ================= Brightness ================= */
+// Text color + darker shades of it for secondary text and lines.
+function applyColor() {
+  const n = parseInt(state.color.slice(1), 16);
+  const shade = (k) => `rgb(${Math.round(((n >> 16) & 255) * k)}, ${Math.round(((n >> 8) & 255) * k)}, ${Math.round((n & 255) * k)})`;
+  const root = document.documentElement.style;
+  root.setProperty('--fg', state.color);
+  root.setProperty('--fg-soft', shade(0.66));
+  root.setProperty('--fg-faint', shade(0.36));
+  root.setProperty('--line', shade(0.14));
+}
+
+function renderColorChoice() {
+  let preset = false;
+  document.querySelectorAll('.swatch').forEach((b) => {
+    b.style.setProperty('--c', b.dataset.color);
+    const on = b.dataset.color === state.color;
+    b.classList.toggle('on', on);
+    preset = preset || on;
+  });
+  $('#custom-color').value = state.color;
+  $('#custom-color').classList.toggle('on', !preset);
+}
+
+function setColor(color) {
+  state.color = color;
+  store.set('color', color);
+  applyColor();
+  renderColorChoice();
+}
+
 function applyBrightness() {
   document.documentElement.style.setProperty('--dim', (state.brightness / 100).toFixed(2));
 }
@@ -548,6 +579,7 @@ function openSettings() {
   $('#brightness').value = state.brightness;
   $('#only-charging').checked = state.onlyCharging;
   renderStyleButtons();
+  renderColorChoice();
   renderAlarmList();
   renderLocation();
   $('#settings').hidden = false;
@@ -580,6 +612,8 @@ function wireUi() {
     renderStyleButtons();
     renderClock(new Date(), true);
   }));
+  document.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => setColor(b.dataset.color)));
+  $('#custom-color').addEventListener('input', (e) => setColor(e.target.value));
   $('#only-charging').addEventListener('change', (e) => {
     state.onlyCharging = e.target.checked;
     store.set('onlyCharging', state.onlyCharging);
@@ -619,6 +653,7 @@ function wireUi() {
 
 /* ================= Startup ================= */
 function init() {
+  applyColor();
   applyBrightness();
   buildDial();
   wireUi();
