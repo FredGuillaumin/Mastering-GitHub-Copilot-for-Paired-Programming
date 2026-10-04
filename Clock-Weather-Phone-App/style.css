@@ -72,8 +72,8 @@ button, input { font: inherit; color: inherit; }
 }
 .clock { display: flex; flex-direction: column; align-items: center; }
 .analog {
-  width: min(64cqh, 78cqw);
-  height: min(64cqh, 78cqw);
+  width: min(92cqh, 94cqw);
+  height: min(92cqh, 94cqw);
   stroke-width: 1.6;
 }
 .analog .face { stroke: var(--fg-faint); stroke-width: 1.2; }
@@ -84,7 +84,21 @@ button, input { font: inherit; color: inherit; }
 .analog .hand.minute { stroke-width: 3.5; }
 .analog .pivot { fill: var(--fg); stroke: none; }
 .clock.digital .analog, .clock.analog .time { display: none; }
-.clock.analog .date { margin-top: 0.35em; }
+/* Analog: the dial fills the half. Date and next alarm sit inside it, between the tip of the
+   hour hand (75 % of the height) and the 6 o'clock mark, so only the minute hand ever crosses them. */
+.clock.analog { position: relative; width: auto; padding: 0; }
+.clock.analog .analog { position: relative; z-index: 1; } /* hands drawn above the text */
+.clock.analog .date,
+.clock.analog .next-alarm {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+.clock.analog .date { top: 76.5%; font-size: 0.8em; }
+.clock.analog .next-alarm { top: 82.5%; font-size: 0.68em; }
 
 .seg { display: flex; border: 1px solid #262626; border-radius: 10px; overflow: hidden; }
 .seg button { background: none; border: 0; padding: 8px 12px; min-height: 40px; color: #666; }
