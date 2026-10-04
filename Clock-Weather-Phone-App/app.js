@@ -185,6 +185,59 @@ function playPattern(volume) {
   beep(t + 0.5, 990, 0.3, volume);
 }
 
+/* ================= Radio ================= */
+const STATIONS = [
+  ['franceinter', 'France Inter', 'https://icecast.radiofrance.fr/franceinter-midfi.mp3'],
+  ['franceinfo', 'franceinfo', 'https://icecast.radiofrance.fr/franceinfo-midfi.mp3'],
+  ['franceculture', 'France Culture', 'https://icecast.radiofrance.fr/franceculture-midfi.mp3'],
+  ['francemusique', 'France Musique', 'https://icecast.radiofrance.fr/francemusique-midfi.mp3'],
+  ['fip', 'FIP', 'https://icecast.radiofrance.fr/fip-midfi.mp3'],
+  ['mouv', 'Mouv\'', 'https://icecast.radiofrance.fr/mouv-midfi.mp3'],
+  ['rtl', 'RTL', 'https://icecast.rtl.fr/rtl-1-44-128'],
+  ['europe1', 'Europe 1', 'https://europe1.lmn.fm/europe1.mp3'],
+  ['rmc', 'RMC', 'https://audio.bfmtv.com/rmcradio_128.mp3'],
+  ['radioclassique', 'Radio Classique', 'https://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3'],
+  ['tsfjazz', 'TSF Jazz', 'https://tsfjazz.ice.infomaniak.ch/tsfjazz-high.mp3'],
+  ['nrj', 'NRJ', 'https://scdn.nrjaudio.fm/adwz2/fr/30001/mp3_128.mp3'],
+  ['rfm', 'RFM', 'https://stream.rfm.fr/rfm.mp3'],
+  ['skyrock', 'Skyrock', 'https://icecast.skyrock.net/s/natio_mp3_128k'],
+  ['fg', 'Radio FG', 'https://radiofg.impek.com/fg'],
+].map(([id, name, url]) => ({ id, name, url }));
+
+const RADIO_START_TIMEOUT_MS = 12000;   // no stream after this: fall back to the beeps
+let radio = null;                       // <audio> currently playing (alarm or preview)
+let previewing = null;                  // alarm being previewed in the settings
+
+function stationUrl(alarm) {
+  if (alarm.sound === 'custom') return alarm.customUrl || null;
+  const s = STATIONS.find((x) => x.id === alarm.sound);
+  return s ? s.url : null;
+}
+
+// Starts a stream; resolves to true once sound actually plays, false on failure/timeout.
+function playRadio(url, volume) {
+  stopRadio();
+  const a = new Audio();
+  a.src = url;
+  a.volume = volume;
+  radio = a;
+  return new Promise((resolve) => {
+    const done = (ok) => { clearTimeout(timer); resolve(ok); };
+    const timer = setTimeout(() => done(false), RADIO_START_TIMEOUT_MS);
+    a.addEventListener('playing', () => done(true), { once: true });
+    a.addEventListener('error', () => done(false), { once: true });
+    a.play().catch(() => done(false));
+  });
+}
+
+function stopRadio() {
+  if (!radio) return;
+  radio.pause();
+  radio.removeAttribute('src');
+  radio.load();
+  radio = null;
+}
+
 /* ================= Alarms ================= */
 const RING_MAX_MS = 10 * 60 * 1000;   // stops by itself after 10 min
 const SNOOZE_MS = 9 * 60 * 1000;
@@ -228,14 +281,29 @@ function checkAlarms(now) {
 function startRinging(alarm) {
   unlockAudio();
   requestWakeLock();
-  const startedAt = Date.now();
+  stopPreview();
+  const url = stationUrl(alarm);
+  const ring = { alarm, startedAt: Date.now(), mode: url ? 'radio' : 'beep', timer: null };
   const loop = () => {
-    const elapsed = (Date.now() - startedAt) / 1000;
-    playPattern(Math.min(0.9, 0.05 + elapsed / 60));   // ~1 min to reach full volume
+    const elapsed = (Date.now() - ring.startedAt) / 1000;
+    if (ring.mode === 'radio') {
+      if (radio) radio.volume = Math.min(1, 0.1 + elapsed / 60);   // ~1 min to reach full volume
+    } else {
+      playPattern(Math.min(0.9, 0.05 + elapsed / 60));
+    }
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
   };
+  ringing = ring;
+  if (url) {
+    // Radio unavailable (no network, stream down, cut off): the beeps take over.
+    const fallback = () => { if (ringing === ring && ring.mode === 'radio') { stopRadio(); ring.mode = 'beep'; } };
+    playRadio(url, 0.1).then((ok) => {
+      if (!ok) return fallback();
+      if (radio) { radio.addEventListener('error', fallback); radio.addEventListener('ended', fallback); }
+    });
+  }
   loop();
-  ringing = { alarm, startedAt, timer: setInterval(loop, 1500) };
+  ring.timer = setInterval(loop, 1500);
   const now = new Date();
   $('#ring-time').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   $('#ring-label').textContent = alarm.label || 'Réveil';
@@ -246,6 +314,7 @@ function startRinging(alarm) {
 function stopRinging() {
   if (!ringing) return;
   clearInterval(ringing.timer);
+  stopRadio();
   if (navigator.vibrate) navigator.vibrate(0);
   ringing = null;
   $('#ring').hidden = true;
@@ -350,9 +419,64 @@ function renderAlarmList() {
     label.value = alarm.label || '';
     label.addEventListener('change', () => { alarm.label = label.value.trim(); saveAlarms(); });
 
-    box.append(top, days, label);
+    const soundRow = document.createElement('div');
+    soundRow.className = 'alarm-sound';
+    const sel = document.createElement('select');
+    sel.setAttribute('aria-label', 'Son du réveil');
+    const opts = [['beep', 'Bips'], ...STATIONS.map((s) => [s.id, `Radio : ${s.name}`]), ['custom', 'Autre radio (adresse du flux)']];
+    for (const [value, text] of opts) sel.append(new Option(text, value));
+    sel.value = alarm.sound || 'beep';
+    sel.addEventListener('change', () => { stopPreview(); alarm.sound = sel.value; saveAlarms(); renderAlarmList(); });
+    const listen = document.createElement('button');
+    listen.type = 'button';
+    listen.className = 'text-btn listen';
+    listen.textContent = previewing === alarm ? 'Arrêter' : 'Écouter';
+    listen.addEventListener('click', () => togglePreview(alarm));
+    soundRow.append(sel, listen);
+
+    box.append(top, days, label, soundRow);
+
+    if (alarm.sound === 'custom') {
+      const custom = document.createElement('input');
+      custom.className = 'alarm-label';
+      custom.type = 'url';
+      custom.placeholder = 'https://… (flux MP3 ou AAC)';
+      custom.value = alarm.customUrl || '';
+      custom.addEventListener('change', () => { stopPreview(); alarm.customUrl = custom.value.trim(); saveAlarms(); renderAlarmList(); });
+      box.append(custom);
+      if (alarm.customUrl && !alarm.customUrl.startsWith('https://')) {
+        const warn = document.createElement('p');
+        warn.className = 'hint';
+        warn.textContent = 'L\'adresse doit commencer par https:// (les flux http:// sont bloqués par le navigateur).';
+        box.append(warn);
+      }
+    }
     list.append(box);
   }
+}
+
+// Preview of an alarm's sound from the settings.
+function togglePreview(alarm) {
+  unlockAudio();
+  if (previewing === alarm) { stopPreview(); return; }
+  stopPreview();
+  const url = stationUrl(alarm);
+  if (!url) { playPattern(0.5); return; }
+  previewing = alarm;
+  renderAlarmList();
+  playRadio(url, 0.6).then((ok) => {
+    if (!ok && previewing === alarm) {
+      stopPreview();
+      alert('Impossible de lire cette radio (réseau ou adresse du flux). Le réveil sonnera avec les bips.');
+    }
+  });
+}
+
+function stopPreview() {
+  if (!previewing) return;
+  previewing = null;
+  if (!ringing) stopRadio();
+  if (!$('#settings').hidden) renderAlarmList();
 }
 
 /* ================= Weather ================= */
@@ -577,6 +701,7 @@ function openSettings() {
 
 function closeSettings() {
   $('#settings').hidden = true;
+  stopPreview();
   renderNextAlarm(new Date());
 }
 
@@ -612,7 +737,7 @@ function wireUi() {
   $('#fullscreen').addEventListener('click', enterFullscreen);
 
   $('#add-alarm').addEventListener('click', () => {
-    state.alarms.push({ id: Date.now().toString(36), time: '07:00', days: [1, 2, 3, 4, 5], enabled: true, label: '' });
+    state.alarms.push({ id: Date.now().toString(36), time: '07:00', days: [1, 2, 3, 4, 5], enabled: true, label: '', sound: 'beep' });
     saveAlarms();
     renderAlarmList();
   });

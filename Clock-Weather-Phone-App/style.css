@@ -302,6 +302,19 @@ svg .mask { fill: var(--bg); }
   padding: 8px 10px;
 }
 
+.alarm-sound { display: flex; gap: 8px; margin-top: 8px; align-items: stretch; }
+.alarm-sound select {
+  flex: 1;
+  min-width: 0;
+  background: #0a0a0a;
+  border: 1px solid #1d1d1d;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: inherit;
+  font: inherit;
+}
+.alarm-sound .listen { margin-top: 0; min-height: 0; padding: 8px 12px; }
+
 .city-form { display: flex; gap: 8px; margin-top: 10px; }
 .city-form input {
   flex: 1;
