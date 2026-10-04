@@ -17,6 +17,7 @@ const state = {
   brightness: store.get('brightness', 35),     // %
   clockStyle: store.get('clockStyle', 'analog'), // 'analog' | 'digital'
   color: store.get('color', '#a0a0a0'),          // text color
+  secondHand: store.get('secondHand', true),     // red second hand on the analog dial
   colorIcons: store.get('colorIcons', true),     // weather symbol in natural colors
   onlyCharging: store.get('onlyCharging', true),  // release the screen when unplugged
   alarms: store.get('alarms', []),             // [{id, time:'07:00', days:[1..5], enabled, label}]
@@ -84,7 +85,13 @@ function buildDial() {
 
 let shownMinute = '';
 
+function renderSecondHand(now) {
+  $('#analog').classList.toggle('no-second', !state.secondHand);
+  if (state.secondHand) $('#hand-s').setAttribute('transform', `rotate(${now.getSeconds() * 6} 100 100)`);
+}
+
 function renderClock(now, force) {
+  if (state.clockStyle === 'analog') renderSecondHand(now);
   const key = `${now.getHours()}:${now.getMinutes()}`;
   if (key === shownMinute && !force) return;
   shownMinute = key;
@@ -663,6 +670,7 @@ async function searchCity(query) {
 function openSettings() {
   $('#brightness').value = state.brightness;
   $('#only-charging').checked = state.onlyCharging;
+  $('#second-hand').checked = state.secondHand;
   $('#color-icons').checked = state.colorIcons;
   renderStyleButtons();
   renderColorChoice();
@@ -701,6 +709,11 @@ function wireUi() {
   }));
   document.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => setColor(b.dataset.color)));
   $('#custom-color').addEventListener('input', (e) => setColor(e.target.value));
+  $('#second-hand').addEventListener('change', (e) => {
+    state.secondHand = e.target.checked;
+    store.set('secondHand', state.secondHand);
+    renderSecondHand(new Date());
+  });
   $('#color-icons').addEventListener('change', (e) => {
     state.colorIcons = e.target.checked;
     store.set('colorIcons', state.colorIcons);

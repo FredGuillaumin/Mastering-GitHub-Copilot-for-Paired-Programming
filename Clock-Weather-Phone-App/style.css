@@ -83,6 +83,9 @@ button, input { font: inherit; color: inherit; }
 .analog .hand.hour { stroke-width: 6; }
 .analog .hand.minute { stroke-width: 3.5; }
 .analog .pivot { fill: var(--fg); stroke: none; }
+.analog .second { stroke: #e0352b; stroke-width: 1.6; }
+.analog .second circle { fill: #e0352b; stroke: none; }
+.analog.no-second .second { display: none; }
 .clock.digital .analog, .clock.analog .time { display: none; }
 /* Analog: the dial fills the half. Date and next alarm sit inside it, between the tip of the
    hour hand (75 % of the height) and the 6 o'clock mark, so only the minute hand ever crosses them. */

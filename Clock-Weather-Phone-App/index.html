@@ -25,6 +25,10 @@
           <line id="hand-h" class="hand hour" x1="100" y1="108" x2="100" y2="52"/>
           <line id="hand-m" class="hand minute" x1="100" y1="112" x2="100" y2="22"/>
           <circle class="pivot" cx="100" cy="100" r="3.5"/>
+          <g id="hand-s" class="second">
+            <line x1="100" y1="124" x2="100" y2="14"/>
+            <circle cx="100" cy="100" r="2.6"/>
+          </g>
         </svg>
         <div id="digital" class="time"><span id="hhmm">--:--</span></div>
         <div id="date" class="date"></div>
@@ -94,6 +98,10 @@
             <input type="color" id="custom-color" aria-label="Couleur personnalisée">
           </div>
         </div>
+        <label class="row">
+          <span>Trotteuse rouge (horloge analogique)</span>
+          <input id="second-hand" type="checkbox">
+        </label>
         <label class="row">
           <span>Symbole météo en couleurs</span>
           <input id="color-icons" type="checkbox">
