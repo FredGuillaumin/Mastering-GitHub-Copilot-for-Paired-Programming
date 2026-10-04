@@ -160,6 +160,15 @@ button, input { font: inherit; color: inherit; }
 svg { stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 svg .mask { fill: var(--bg); }
 
+/* Weather symbol in natural colors (optional) */
+.icon.colored .sun { stroke: #f2b233; }
+.icon.colored .moon { stroke: #e8d9a8; }
+.icon.colored .cloud { stroke: #c7ccd4; }
+.icon.colored .rain { stroke: #4a9ae8; }
+.icon.colored .snow { stroke: #e6f0ff; fill: #e6f0ff; }
+.icon.colored .bolt { stroke: #f5c400; }
+.icon.colored .fog { stroke: #8f98a3; }
+
 /* ---------- Settings button ---------- */
 .corner-btn {
   position: absolute;
