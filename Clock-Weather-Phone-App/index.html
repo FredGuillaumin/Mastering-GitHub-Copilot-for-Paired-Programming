@@ -19,7 +19,14 @@
   <main id="app">
     <section class="panel" id="clock-panel">
       <div class="clock">
-        <div class="time"><span id="hhmm">--:--</span><span id="ss" class="seconds">--</span></div>
+        <svg id="analog" class="analog" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="face" cx="100" cy="100" r="96"/>
+          <g id="ticks"></g>
+          <line id="hand-h" class="hand hour" x1="100" y1="108" x2="100" y2="52"/>
+          <line id="hand-m" class="hand minute" x1="100" y1="112" x2="100" y2="22"/>
+          <circle class="pivot" cx="100" cy="100" r="3.5"/>
+        </svg>
+        <div id="digital" class="time"><span id="hhmm">--:--</span></div>
         <div id="date" class="date"></div>
         <div id="next-alarm" class="next-alarm" hidden></div>
       </div>
@@ -41,18 +48,12 @@
       </div>
     </section>
 
+    <div id="sound-hint" class="sound-hint" hidden>Touchez l'écran pour activer le son du réveil</div>
+
     <button id="open-settings" class="corner-btn" aria-label="Réglages">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
     </button>
   </main>
-
-  <!-- Start screen: a tap unlocks sound, keeps the screen on and switches to fullscreen -->
-  <div id="start" class="overlay start">
-    <div>
-      <div class="start-title">Toucher pour démarrer</div>
-      <div class="start-sub">active le son du réveil et garde l'écran allumé</div>
-    </div>
-  </div>
 
   <!-- Ringing alarm -->
   <div id="ring" class="overlay ring" hidden>
@@ -78,9 +79,16 @@
           <span>Luminosité</span>
           <input id="brightness" type="range" min="5" max="100" step="1">
         </label>
+        <div class="row">
+          <span>Horloge</span>
+          <div class="seg" role="group" aria-label="Style d'horloge">
+            <button type="button" data-style="analog">Analogique</button>
+            <button type="button" data-style="digital">Numérique</button>
+          </div>
+        </div>
         <label class="row">
-          <span>Afficher les secondes</span>
-          <input id="show-seconds" type="checkbox">
+          <span>Écran allumé seulement en charge</span>
+          <input id="only-charging" type="checkbox">
         </label>
         <button id="fullscreen" class="text-btn">Plein écran</button>
       </section>

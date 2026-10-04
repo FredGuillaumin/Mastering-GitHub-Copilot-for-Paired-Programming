@@ -15,7 +15,8 @@ const store = {
 
 const state = {
   brightness: store.get('brightness', 35),     // %
-  showSeconds: store.get('showSeconds', true),
+  clockStyle: store.get('clockStyle', 'analog'), // 'analog' | 'digital'
+  onlyCharging: store.get('onlyCharging', true),  // release the screen when unplugged
   alarms: store.get('alarms', []),             // [{id, time:'07:00', days:[1..5], enabled, label}]
   location: store.get('location', null),       // {lat, lon, name, auto}
   weather: store.get('weather', null),         // {data, fetchedAt}
@@ -34,20 +35,41 @@ function applyBrightness() {
 /* ================= Clock ================= */
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-function renderClock(now) {
+function buildDial() {
+  let s = '';
+  for (let i = 0; i < 60; i++) {
+    const major = i % 5 === 0;
+    const a = (i * Math.PI) / 30;
+    const r1 = major ? 80 : 88, r2 = 92;
+    if (!major) {
+      s += `<circle class="tick" cx="${(100 + Math.sin(a) * 90).toFixed(1)}" cy="${(100 - Math.cos(a) * 90).toFixed(1)}" r="0.6"/>`;
+      continue;
+    }
+    s += `<line class="tick major" x1="${(100 + Math.sin(a) * r1).toFixed(1)}" y1="${(100 - Math.cos(a) * r1).toFixed(1)}" x2="${(100 + Math.sin(a) * r2).toFixed(1)}" y2="${(100 - Math.cos(a) * r2).toFixed(1)}"/>`;
+  }
+  $('#ticks').innerHTML = s;
+}
+
+let shownMinute = '';
+
+function renderClock(now, force) {
+  const key = `${now.getHours()}:${now.getMinutes()}`;
+  if (key === shownMinute && !force) return;
+  shownMinute = key;
+  $('.clock').classList.toggle('analog', state.clockStyle === 'analog');
+  $('.clock').classList.toggle('digital', state.clockStyle !== 'analog');
   $('#hhmm').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  const ss = $('#ss');
-  ss.textContent = pad(now.getSeconds());
-  ss.classList.toggle('off', !state.showSeconds);
-  const d = dateFmt.format(now);
-  if ($('#date').textContent !== d) $('#date').textContent = d;
+  const h = now.getHours() % 12, m = now.getMinutes();
+  $('#hand-h').setAttribute('transform', `rotate(${h * 30 + m * 0.5} 100 100)`);
+  $('#hand-m').setAttribute('transform', `rotate(${m * 6} 100 100)`);
+  $('#date').textContent = dateFmt.format(now);
+  renderNextAlarm(now);
 }
 
 function tick() {
   const now = new Date();
   renderClock(now);
   checkAlarms(now);
-  if (now.getSeconds() === 0) renderNextAlarm(now);
 }
 
 function scheduleTick() {
@@ -57,13 +79,40 @@ function scheduleTick() {
 
 /* ================= Screen wake lock & fullscreen ================= */
 let wakeLock = null;
+let wakeLockPending = false;
 
 async function requestWakeLock() {
-  if (!('wakeLock' in navigator) || document.visibilityState !== 'visible' || wakeLock) return;
+  if (!('wakeLock' in navigator) || document.visibilityState !== 'visible' || wakeLock || wakeLockPending) return;
+  wakeLockPending = true;
   try {
-    wakeLock = await navigator.wakeLock.request('screen');
-    wakeLock.addEventListener('release', () => { wakeLock = null; });
+    const lock = await navigator.wakeLock.request('screen');
+    lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; });
+    wakeLock = lock;
+    if (!screenShouldStayOn()) updateWakeLock(); // unplugged while the request was pending
   } catch { /* refused (battery saver, etc.) */ }
+  wakeLockPending = false;
+}
+
+// Nightstand mode: keep the screen on while charging (or while an alarm rings).
+let charging = null; // null = unknown (Battery API not available, e.g. iPhone)
+
+function screenShouldStayOn() {
+  return !!ringing || !state.onlyCharging || charging !== false;
+}
+
+function updateWakeLock() {
+  if (screenShouldStayOn()) requestWakeLock();
+  else if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+async function watchBattery() {
+  if (!navigator.getBattery) return;
+  try {
+    const battery = await navigator.getBattery();
+    const update = () => { charging = battery.charging; updateWakeLock(); };
+    battery.addEventListener('chargingchange', update);
+    update();
+  } catch { /* not available */ }
 }
 
 function enterFullscreen() {
@@ -79,8 +128,18 @@ let audioCtx = null;
 
 function unlockAudio() {
   const AC = window.AudioContext || window.webkitAudioContext;
-  if (!audioCtx && AC) audioCtx = new AC();
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (!audioCtx && AC) {
+    audioCtx = new AC();
+    audioCtx.addEventListener('statechange', renderSoundHint);
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().then(renderSoundHint, () => {});
+  renderSoundHint();
+}
+
+// Browsers only allow sound after a first touch: remind it if an alarm is set.
+function renderSoundHint() {
+  const locked = !audioCtx || audioCtx.state !== 'running';
+  $('#sound-hint').hidden = !(locked && state.alarms.some((a) => a.enabled));
 }
 
 function beep(at, freq, dur, volume) {
@@ -112,7 +171,7 @@ const lastFired = {};                  // alarm id -> 'YYYY-M-D HH:MM'
 let ringing = null;                    // {alarm, startedAt, timer}
 let snooze = null;                     // {until, alarm}
 
-function saveAlarms() { store.set('alarms', state.alarms); renderNextAlarm(new Date()); }
+function saveAlarms() { store.set('alarms', state.alarms); renderNextAlarm(new Date()); renderSoundHint(); }
 
 function alarmMatches(alarm, now) {
   if (!alarm.enabled) return false;
@@ -170,6 +229,7 @@ function stopRinging() {
   ringing = null;
   $('#ring').hidden = true;
   renderNextAlarm(new Date());
+  updateWakeLock();
 }
 
 function snoozeRinging() {
@@ -486,7 +546,8 @@ async function searchCity(query) {
 /* ================= Settings ================= */
 function openSettings() {
   $('#brightness').value = state.brightness;
-  $('#show-seconds').checked = state.showSeconds;
+  $('#only-charging').checked = state.onlyCharging;
+  renderStyleButtons();
   renderAlarmList();
   renderLocation();
   $('#settings').hidden = false;
@@ -497,13 +558,13 @@ function closeSettings() {
   renderNextAlarm(new Date());
 }
 
+function renderStyleButtons() {
+  document.querySelectorAll('.seg button').forEach((b) => b.classList.toggle('on', b.dataset.style === state.clockStyle));
+}
+
 function wireUi() {
-  $('#start').addEventListener('click', () => {
-    unlockAudio();
-    requestWakeLock();
-    enterFullscreen();
-    $('#start').hidden = true;
-  });
+  // First touch: sound + fullscreen (both require a user gesture)
+  document.addEventListener('pointerdown', () => { updateWakeLock(); enterFullscreen(); }, { once: true });
 
   $('#open-settings').addEventListener('click', openSettings);
   $('#close-settings').addEventListener('click', closeSettings);
@@ -513,10 +574,16 @@ function wireUi() {
     applyBrightness();
     store.set('brightness', state.brightness);
   });
-  $('#show-seconds').addEventListener('change', (e) => {
-    state.showSeconds = e.target.checked;
-    store.set('showSeconds', state.showSeconds);
-    renderClock(new Date());
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+    state.clockStyle = b.dataset.style;
+    store.set('clockStyle', state.clockStyle);
+    renderStyleButtons();
+    renderClock(new Date(), true);
+  }));
+  $('#only-charging').addEventListener('change', (e) => {
+    state.onlyCharging = e.target.checked;
+    store.set('onlyCharging', state.onlyCharging);
+    updateWakeLock();
   });
   $('#fullscreen').addEventListener('click', enterFullscreen);
 
@@ -541,7 +608,7 @@ function wireUi() {
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      requestWakeLock();
+      updateWakeLock();
       tick();
       renderNextAlarm(new Date());
       maybeRefreshWeather();
@@ -553,10 +620,13 @@ function wireUi() {
 /* ================= Startup ================= */
 function init() {
   applyBrightness();
+  buildDial();
   wireUi();
   scheduleTick();
-  renderNextAlarm(new Date());
   renderWeather();
+  unlockAudio();      // works without a touch when the browser allows it
+  watchBattery();
+  updateWakeLock();
 
   if (state.location) maybeRefreshWeather();
   if (!state.location || state.location.auto) locateWithGps();

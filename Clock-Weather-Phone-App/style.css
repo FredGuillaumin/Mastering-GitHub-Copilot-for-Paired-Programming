@@ -72,13 +72,34 @@ button, input { font: inherit; color: inherit; }
   letter-spacing: -0.03em;
   white-space: nowrap;
 }
-.seconds {
-  font-size: 0.26em;
-  color: var(--fg-soft);
-  margin-left: 0.15em;
-  letter-spacing: 0;
+.clock { display: flex; flex-direction: column; align-items: center; }
+.analog {
+  width: min(64cqh, 78cqw);
+  height: min(64cqh, 78cqw);
+  stroke-width: 1.6;
 }
-.seconds.off { display: none; }
+.analog .face { stroke: var(--fg-faint); stroke-width: 1.2; }
+.analog .tick { stroke: var(--fg-soft); }
+.analog .tick.major { stroke: var(--fg); stroke-width: 3; }
+.analog .hand { stroke: var(--fg); }
+.analog .hand.hour { stroke-width: 6; }
+.analog .hand.minute { stroke-width: 3.5; }
+.analog .pivot { fill: var(--fg); stroke: none; }
+.clock.digital .analog, .clock.analog .time { display: none; }
+.clock.analog .date { margin-top: 0.35em; }
+
+.sound-hint {
+  position: absolute;
+  left: calc(env(safe-area-inset-left) + 14px);
+  bottom: calc(env(safe-area-inset-bottom) + 20px);
+  right: 70px;
+  font-size: 13px;
+  color: var(--fg-faint);
+}
+
+.seg { display: flex; border: 1px solid #262626; border-radius: 10px; overflow: hidden; }
+.seg button { background: none; border: 0; padding: 8px 12px; min-height: 40px; color: #666; }
+.seg button.on { background: #262626; color: #bbb; }
 .date {
   margin-top: 0.5em;
   font-size: 1.05em;
@@ -168,17 +189,6 @@ svg .mask { fill: var(--bg); }
   z-index: 10;
 }
 .overlay[hidden] { display: none; }
-
-.start {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: #4a4a4a;
-  padding: 24px;
-}
-.start-title { font-size: 1.4rem; font-weight: 300; }
-.start-sub { font-size: 0.85rem; margin-top: 0.5em; color: #333; }
 
 .ring {
   display: flex;
