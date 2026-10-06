@@ -1,6 +1,6 @@
 # Horloge Météo (téléphone)
 
-Application web (PWA) pour un téléphone posé sur la table de nuit :
+Application Android (**APK**) et application web (PWA) pour un téléphone posé sur la table de nuit :
 
 - **Horloge analogique** avec **trotteuse rouge** en mouvement continu (désactivable), ou numérique sans secondes, au choix dans les réglages, sur une moitié de l'écran ; **météo**, date, prochain réveil et **niveau de batterie** (éclair jaune en charge, rouge si faible ; Android uniquement) sur l'autre.
 - **Suit l'orientation** : horloge en haut / météo en bas en portrait, côte à côte en paysage.
@@ -9,7 +9,36 @@ Application web (PWA) pour un téléphone posé sur la table de nuit :
 - **Météo du moment** [Open-Meteo](https://open-meteo.com) (gratuit, sans clé) : ciel, température, ressenti, vent, humidité. Actualisée toutes les 15 min, dernières données conservées hors ligne.
 - **Mode table de nuit** : l'écran reste allumé tant que le téléphone est **en charge** et se met en veille normalement quand on le débranche (réglable). Fonctionne hors ligne une fois installée.
 
-## Installation sur le téléphone
+## Application Android (APK) — recommandée sur Android
+
+L'APK reprend exactement la même interface et ajoute ce qu'une page web ne peut pas faire :
+
+- **Vrai réveil** : il sonne même si l'application est fermée ou le téléphone verrouillé (réveil système Android, icône d'alarme dans la barre d'état). Si l'application tarde à s'afficher, le son d'alarme du téléphone sonne en attendant.
+- **Ouverture automatique quand le téléphone est en charge et en paysage** (sans MacroDroid). Une notification discrète « Ouverture automatique en charge » reste affichée pour que ça fonctionne.
+- Affichage **par-dessus l'écran de verrouillage**, plein écran, écran maintenu allumé en charge.
+- Le son du réveil (bips ou radio) n'a plus besoin d'un premier toucher ; le volume « média » est remonté à 40 % pendant la sonnerie s'il était plus bas.
+
+### Installer l'APK
+
+1. Sur le téléphone, ouvrir dans Chrome : `https://<utilisateur>.github.io/<dépôt>/Clock-Weather-Phone-App/HorlogeMeteo.apk` (ou le fichier `HorlogeMeteo.apk` de ce dossier).
+2. Ouvrir le fichier téléchargé. Android demande d'autoriser Chrome à **installer des applications inconnues** : l'autoriser, puis **Installer**. Si Play Protect affiche un avertissement : *Plus de détails → Installer quand même*.
+3. Au premier lancement, autoriser les **notifications** et la **position**.
+4. Dans les réglages de l'appli (petit bouton en bas à droite), section **Application Android** : toucher **Autoriser l'ouverture automatique** et activer *Superposition sur d'autres applis* pour Horloge Météo.
+5. Si une macro MacroDroid ouvre déjà l'horloge, la désactiver.
+
+Les mises à jour s'installent par-dessus (réglages et réveils conservés).
+
+### Compiler l'APK
+
+```sh
+cd android
+ANDROID_HOME=/chemin/vers/android-sdk ./gradlew assembleRelease
+# -> android/app/build/outputs/apk/release/app-release.apk
+```
+
+L'interface (`index.html`, `style.css`, `app.js`, `icons/`) est copiée dans l'APK à la compilation : une seule source pour les deux versions. La clé de signature (`android/keystore/`) est dans le dépôt pour que chaque nouvelle version s'installe par-dessus la précédente.
+
+## Version web : installation sur le téléphone
 
 L'application doit être servie en **HTTPS** (géolocalisation, écran maintenu allumé, installation). Le plus simple : **GitHub Pages**.
 
@@ -20,9 +49,9 @@ L'application doit être servie en **HTTPS** (géolocalisation, écran maintenu 
    - **iPhone (Safari)** : bouton Partager → *Sur l'écran d'accueil*.
 4. Lancer, autoriser la position, toucher l'écran une fois (active le son du réveil et le plein écran).
 
-## Démarrage automatique quand le téléphone est en charge et en paysage
+## Version web : démarrage automatique en charge et en paysage
 
-Une application web ne peut pas se lancer toute seule : c'est le téléphone qui doit l'ouvrir, avec une automatisation.
+(Inutile avec l'APK, qui le fait elle-même.) Une application web ne peut pas se lancer toute seule : c'est le téléphone qui doit l'ouvrir, avec une automatisation.
 
 **Android — avec [MacroDroid](https://play.google.com/store/apps/details?id=com.arlosoft.macrodroid) (gratuit)**
 
@@ -43,6 +72,6 @@ Sur Samsung, *Paramètres → Modes et routines* permet aussi « Si : en charge 
 - Double-tap sur l'horloge : plein écran.
 - Pour un écran encore plus noir, baisser aussi la luminosité du téléphone.
 
-## Limites (important pour le réveil)
+## Version web : limites (important pour le réveil)
 
 Une application web ne peut pas réveiller un téléphone éteint ou verrouillé : **l'application doit rester ouverte au premier plan** pour que le réveil sonne. Le navigateur exige aussi **un premier toucher** pour autoriser le son (touchez l'écran une fois après l'ouverture ; aucun message ne s'affiche en veille). Laisser le téléphone branché avec l'application affichée (elle garde l'écran allumé, très faiblement). Vérifier aussi que le volume « média » n'est pas coupé.
