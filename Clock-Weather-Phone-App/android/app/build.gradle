@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The interface is the web app one folder up (index.html, style.css, app.js, icons):
+// it is copied into the APK assets at build time, so both versions stay identical.
+def webOut = layout.buildDirectory.dir('generated/web')
+
+def copyWeb = tasks.register('copyWeb', Copy) {
+    from(rootProject.file('..')) {
+        include 'index.html', 'style.css', 'app.js', 'icons/**'
+    }
+    into webOut.map { it.dir('www') }
+}
+
+android {
+    namespace 'fr.horlogemeteo'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'fr.horlogemeteo'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // Fixed key so that each new APK installs over the previous one (settings and alarms kept).
+    signingConfigs {
+        release {
+            storeFile file('../keystore/horloge-meteo.jks')
+            storePassword 'horloge-meteo'
+            keyAlias 'horloge-meteo'
+            keyPassword 'horloge-meteo'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs += webOut
+        }
+    }
+}
+
+tasks.named('preBuild') { dependsOn copyWeb }

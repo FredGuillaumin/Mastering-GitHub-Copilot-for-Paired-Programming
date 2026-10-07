@@ -26,6 +26,9 @@ const state = {
 };
 
 const $ = (sel) => document.querySelector(sel);
+
+// Bridge to the Android app (APK); null when running in a browser.
+const NATIVE = window.HorlogeAndroid || null;
 const pad = (n) => String(n).padStart(2, '0');
 const DAY_LETTERS = ['D', 'L', 'M', 'M', 'J', 'V', 'S']; // index = Date#getDay()
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];                 // displayed Monday first
@@ -147,6 +150,7 @@ function screenShouldStayOn() {
 }
 
 function updateWakeLock() {
+  if (NATIVE) { NATIVE.keepScreenOn(screenShouldStayOn()); return; }
   if (screenShouldStayOn()) requestWakeLock();
   else if (wakeLock) { wakeLock.release(); wakeLock = null; }
 }
@@ -168,6 +172,15 @@ function renderBattery(battery) {
 }
 
 async function watchBattery() {
+  if (NATIVE) {
+    window.onNativeBattery = (level, isCharging) => {
+      charging = isCharging;
+      updateWakeLock();
+      renderBattery({ level, charging: isCharging });
+    };
+    NATIVE.requestBattery();
+    return;
+  }
   if (!navigator.getBattery) return;
   try {
     const battery = await navigator.getBattery();
@@ -179,6 +192,7 @@ async function watchBattery() {
 }
 
 function enterFullscreen() {
+  if (NATIVE) return; // the Android app is always fullscreen
   const el = document.documentElement;
   const req = el.requestFullscreen || el.webkitRequestFullscreen;
   if (req && !document.fullscreenElement) {
@@ -275,9 +289,34 @@ const RING_MAX_MS = 10 * 60 * 1000;   // stops by itself after 10 min
 const SNOOZE_MS = 9 * 60 * 1000;
 const lastFired = {};                  // alarm id -> 'YYYY-M-D HH:MM'
 let ringing = null;                    // {alarm, startedAt, timer}
-let snooze = null;                     // {until, alarm}
+let snooze = restoreSnooze();          // {until, alarm}, kept across restarts
+
+function restoreSnooze() {
+  const s = store.get('snooze', null);
+  if (!s || Date.now() - s.until > RING_MAX_MS) return null;
+  return { until: s.until, alarm: state.alarms.find((a) => a.id === s.alarmId) || { label: 'Réveil', sound: 'beep' } };
+}
+
+function setSnooze(value) {
+  snooze = value;
+  store.set('snooze', value ? { until: value.until, alarmId: value.alarm.id } : null);
+}
 
 function saveAlarms() { store.set('alarms', state.alarms); renderNextAlarm(new Date()); }
+
+function minuteKey(d) {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fireAlarm(alarm, key) {
+  lastFired[alarm.id] = key;
+  if (alarm.days.length === 0) {    // single alarm: switched off once it has rung
+    alarm.enabled = false;
+    saveAlarms();
+    renderAlarmList();
+  }
+  startRinging(alarm);
+}
 
 function alarmMatches(alarm, now) {
   if (!alarm.enabled) return false;
@@ -292,27 +331,42 @@ function checkAlarms(now) {
   }
   if (snooze && now.getTime() >= snooze.until) {
     const a = snooze.alarm;
-    snooze = null;
+    setSnooze(null);
     startRinging(a);
     return;
   }
-  const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const key = minuteKey(now);
   for (const alarm of state.alarms) {
     if (lastFired[alarm.id] === key || !alarmMatches(alarm, now)) continue;
-    lastFired[alarm.id] = key;
-    if (alarm.days.length === 0) {    // single alarm: switched off once it has rung
-      alarm.enabled = false;
-      saveAlarms();
-      renderAlarmList();
-    }
-    startRinging(alarm);
+    fireAlarm(alarm, key);
     return;
+  }
+}
+
+// Android app: the system alarm woke the app up (possibly closed or locked) -> ring now,
+// even if the minute has passed while it was starting.
+function checkNativeRing() {
+  if (!NATIVE) return;
+  const at = Number(NATIVE.consumePendingRing()); // scheduled time of that alarm, 0 if none
+  if (!at || ringing || Date.now() - at > RING_MAX_MS) return;
+  if (snooze && Math.abs(snooze.until - at) < 60000) {
+    const a = snooze.alarm;
+    setSnooze(null);
+    startRinging(a);
+    return;
+  }
+  const when = new Date(at);
+  const key = minuteKey(when);
+  const alarm = state.alarms.find((a) => alarmMatches(a, when));
+  if (alarm) {
+    if (lastFired[alarm.id] !== key) fireAlarm(alarm, key);
+  } else if (!state.alarms.some((a) => lastFired[a.id] === key)) {
+    startRinging({ label: 'Réveil', sound: 'beep', days: [] });
   }
 }
 
 function startRinging(alarm) {
   unlockAudio();
-  requestWakeLock();
   stopPreview();
   const url = stationUrl(alarm);
   const ring = { alarm, startedAt: Date.now(), mode: url ? 'radio' : 'beep', timer: null };
@@ -326,6 +380,8 @@ function startRinging(alarm) {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
   };
   ringing = ring;
+  updateWakeLock();
+  if (NATIVE) NATIVE.ringStarted(); // makes sure the media volume is audible
   if (url) {
     // Radio unavailable (no network, stream down, cut off): the beeps take over.
     const fallback = () => { if (ringing === ring && ring.mode === 'radio') { stopRadio(); ring.mode = 'beep'; } };
@@ -349,6 +405,7 @@ function stopRinging() {
   stopRadio();
   if (navigator.vibrate) navigator.vibrate(0);
   ringing = null;
+  if (NATIVE) NATIVE.ringStopped();
   $('#ring').hidden = true;
   renderNextAlarm(new Date());
   updateWakeLock();
@@ -358,7 +415,7 @@ function snoozeRinging() {
   if (!ringing) return;
   const alarm = ringing.alarm;
   stopRinging();
-  snooze = { until: Date.now() + SNOOZE_MS, alarm };
+  setSnooze({ until: Date.now() + SNOOZE_MS, alarm });
   renderNextAlarm(new Date());
 }
 
@@ -381,9 +438,19 @@ function nextAlarmDate(now) {
 
 const BELL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
 
+// Android app: the next ring time is handed to the system alarm clock, which wakes the
+// phone and opens the app even when it is closed or locked.
+let nativeNext = null;
+function scheduleNativeAlarm(next) {
+  if (!NATIVE) return;
+  const t = next ? next.getTime() : 0;
+  if (t !== nativeNext) { nativeNext = t; NATIVE.setNextAlarm(String(t)); }
+}
+
 function renderNextAlarm(now) {
   const el = $('#next-alarm');
   const next = nextAlarmDate(now);
+  scheduleNativeAlarm(next);
   if (!next) { el.hidden = true; return; }
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const diffDays = Math.round((new Date(next.getFullYear(), next.getMonth(), next.getDate()) - today) / 86400000);
@@ -700,7 +767,24 @@ function openSettings() {
   renderColorChoice();
   renderAlarmList();
   renderLocation();
+  renderAndroidSettings();
   $('#settings').hidden = false;
+}
+
+function renderAndroidSettings() {
+  if (!NATIVE) return;
+  $('#android-section').hidden = false;
+  $('#fullscreen').hidden = true;
+  $('#alarm-hint').textContent = 'Le réveil sonne même si l\'application est fermée ou le téléphone verrouillé (vérifiez que le volume « média » n\'est pas coupé).';
+  $('#auto-start').checked = NATIVE.getAutoStart();
+  const overlay = NATIVE.canDrawOverlays();
+  $('#overlay-btn').hidden = overlay;
+  $('#overlay-status').textContent = overlay
+    ? 'Ouverture automatique autorisée.'
+    : 'Pour s\'ouvrir toute seule, l\'application a besoin de l\'autorisation « Superposition sur d\'autres applis ».';
+  const fsi = NATIVE.canRingWhenLocked();
+  $('#fsi-btn').hidden = fsi;
+  $('#fsi-status').textContent = fsi ? '' : 'Pour sonner téléphone verrouillé, autorisez les « notifications plein écran ».';
 }
 
 function closeSettings() {
@@ -749,6 +833,11 @@ function wireUi() {
     updateWakeLock();
   });
   $('#fullscreen').addEventListener('click', enterFullscreen);
+  if (NATIVE) {
+    $('#auto-start').addEventListener('change', (e) => NATIVE.setAutoStart(e.target.checked));
+    $('#overlay-btn').addEventListener('click', () => NATIVE.openOverlaySettings());
+    $('#fsi-btn').addEventListener('click', () => NATIVE.openFullScreenSettings());
+  }
 
   $('#add-alarm').addEventListener('click', () => {
     state.alarms.push({ id: Date.now().toString(36), time: '07:00', days: [1, 2, 3, 4, 5], enabled: true, label: '', sound: 'beep' });
@@ -770,15 +859,26 @@ function wireUi() {
   $('#clock-panel').addEventListener('dblclick', enterFullscreen);
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      updateWakeLock();
-      tick();
-      syncSecondHand();
-      renderNextAlarm(new Date());
-      maybeRefreshWeather();
-    }
+    if (document.visibilityState === 'visible') onAppVisible();
   });
+  window.onNativeResume = onAppVisible; // called by the Android app
+  // Android Back button: closes the settings first (returns true when handled)
+  window.onNativeBack = () => {
+    if ($('#settings').hidden) return false;
+    closeSettings();
+    return true;
+  };
   window.addEventListener('online', maybeRefreshWeather);
+}
+
+function onAppVisible() {
+  updateWakeLock();
+  tick();
+  checkNativeRing();
+  syncSecondHand();
+  renderNextAlarm(new Date());
+  maybeRefreshWeather();
+  if (!$('#settings').hidden) renderAndroidSettings();
 }
 
 /* ================= Startup ================= */
@@ -792,12 +892,13 @@ function init() {
   unlockAudio();      // works without a touch when the browser allows it
   watchBattery();
   updateWakeLock();
+  checkNativeRing();
 
   if (state.location) maybeRefreshWeather();
   if (!state.location || state.location.auto) locateWithGps();
   setInterval(maybeRefreshWeather, 60 * 1000);
 
-  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  if (!NATIVE && 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 }

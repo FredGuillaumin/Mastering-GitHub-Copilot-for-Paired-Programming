@@ -123,7 +123,19 @@
           <button id="add-alarm" class="text-btn">+ Ajouter un réveil</button>
           <button id="test-sound" class="text-btn">Tester le son</button>
         </div>
-        <p class="hint">L'application doit rester ouverte (écran allumé, tout faiblement) pour que le réveil sonne. Branchez le téléphone pour la nuit.</p>
+        <p id="alarm-hint" class="hint">L'application doit rester ouverte (écran allumé, tout faiblement) pour que le réveil sonne. Branchez le téléphone pour la nuit.</p>
+      </section>
+
+      <section id="android-section" hidden>
+        <h2>Application Android</h2>
+        <label class="row">
+          <span>Ouvrir automatiquement en charge et en paysage</span>
+          <input id="auto-start" type="checkbox">
+        </label>
+        <p id="overlay-status" class="hint"></p>
+        <button id="overlay-btn" class="text-btn" hidden>Autoriser l'ouverture automatique</button>
+        <p id="fsi-status" class="hint"></p>
+        <button id="fsi-btn" class="text-btn" hidden>Autoriser le réveil plein écran</button>
       </section>
 
       <section>
