@@ -49,6 +49,7 @@ public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final String START_URL = "https://" + HOST + "/www/index.html";
     private static final int REQ_PERMISSIONS = 1;
+    private static final int REQ_CALENDAR = 2;
 
     private WebView web;
     private BroadcastReceiver batteryReceiver;
@@ -230,6 +231,7 @@ public class MainActivity extends Activity {
         if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             missing.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         }
+        if (!hasCalendar()) missing.add(Manifest.permission.READ_CALENDAR);
         if (missing.isEmpty()) return;
         permissionRequestRunning = true;
         requestPermissions(missing.toArray(new String[0]), REQ_PERMISSIONS);
@@ -238,8 +240,19 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int code, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(code, permissions, results);
+        if (code == REQ_CALENDAR) {
+            web.evaluateJavascript("window.onNativeCalendarPermission && window.onNativeCalendarPermission("
+                    + hasCalendar() + ")", null);
+            return;
+        }
         permissionRequestRunning = false;
         answerGeolocation();
+        web.evaluateJavascript("window.onNativeCalendarPermission && window.onNativeCalendarPermission("
+                + hasCalendar() + ")", null);
+    }
+
+    private boolean hasCalendar() {
+        return checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED;
     }
 
     private boolean hasLocation() {
@@ -413,6 +426,29 @@ public class MainActivity extends Activity {
                 i = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
             }
             startActivity(i);
+        }
+
+        // ---- calendar (Google Agenda synced on the phone)
+
+        @JavascriptInterface
+        public boolean hasCalendarPermission() {
+            return hasCalendar();
+        }
+
+        @JavascriptInterface
+        public void requestCalendarPermission() {
+            runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.READ_CALENDAR}, REQ_CALENDAR));
+        }
+
+        /** Events between two epoch times (strings, as JS numbers), as a JSON array. */
+        @JavascriptInterface
+        public String getEvents(String from, String to) {
+            if (!hasCalendar()) return "[]";
+            try {
+                return CalendarReader.events(MainActivity.this, Long.parseLong(from), Long.parseLong(to));
+            } catch (NumberFormatException e) {
+                return "[]";
+            }
         }
     }
 }
