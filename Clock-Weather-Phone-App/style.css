@@ -160,13 +160,6 @@ button, input { font: inherit; color: inherit; }
 .battery.low { color: #e0352b; }
 
 /* ---------- Weather ---------- */
-.place {
-  font-size: 0.95em;
-  color: var(--fg-soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .now {
   display: flex;
   align-items: center;
@@ -182,19 +175,8 @@ button, input { font: inherit; color: inherit; }
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.desc { font-size: 1.05em; }
-.details {
-  margin-top: 0.35em;
-  font-size: 0.82em;
-  color: var(--fg-soft);
-  line-height: 1.5;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  column-gap: 0.8em;
-}
-.details span { white-space: nowrap; }
-.updated { margin-top: 0.5em; font-size: 0.65em; color: var(--fg-faint); }
+.desc { font-size: 0.85em; color: var(--fg-soft); }
+.desc[hidden] { display: none; }
 
 svg { stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 svg .mask { fill: var(--bg); }

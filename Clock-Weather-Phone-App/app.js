@@ -733,33 +733,28 @@ function weatherIcon(kind, isDay) {
 
 function describe(code) { return WMO[code] || ['—', 'cloudy']; }
 
+// Only the symbol and the temperature; #w-desc is used for status messages only.
+function weatherMessage(text) {
+  $('#w-desc').textContent = text;
+  $('#w-desc').hidden = !text;
+}
+
 function renderWeather() {
   const loc = state.location;
-  $('#w-place').textContent = loc ? loc.name : 'Météo';
   const w = state.weather;
   if (!w || !w.data || !w.data.current) {
-    $('#w-desc').textContent = loc ? 'Chargement…' : 'Choisissez un lieu dans les réglages';
+    weatherMessage(loc ? 'Chargement…' : 'Choisissez un lieu dans les réglages');
     return;
   }
   const { current } = w.data;
   const [label, kind] = describe(current.weather_code);
   $('#w-icon').innerHTML = weatherIcon(kind, current.is_day);
   $('#w-icon').classList.toggle('colored', state.colorIcons);
+  $('#w-icon').setAttribute('aria-label', label);
   $('#w-temp').textContent = `${Math.round(current.temperature_2m)}°`;
-  $('#w-desc').textContent = label;
-
-  const details = [
-    `ressenti ${Math.round(current.apparent_temperature)}°`,
-    `vent ${Math.round(current.wind_speed_10m)} km/h`,
-    `humidité ${Math.round(current.relative_humidity_2m)} %`,
-  ];
-  $('#w-details').replaceChildren(...details.map((t) => { const el = document.createElement('span'); el.textContent = t; return el; }));
-
-  const age = Date.now() - w.fetchedAt;
+  // Old data (no network for a while): say so discreetly.
   const t = new Date(w.fetchedAt);
-  $('#w-updated').textContent = age > 2 * WEATHER_REFRESH_MS
-    ? `données du ${t.toLocaleDateString('fr-FR')} ${pad(t.getHours())}:${pad(t.getMinutes())}`
-    : `mis à jour à ${pad(t.getHours())}:${pad(t.getMinutes())}`;
+  weatherMessage(Date.now() - w.fetchedAt > 8 * WEATHER_REFRESH_MS ? `météo de ${pad(t.getHours())}:${pad(t.getMinutes())}` : '');
 }
 
 let weatherLoading = false;
@@ -770,7 +765,7 @@ async function fetchWeather() {
   weatherLoading = true;
   const url = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${loc.lat}&longitude=${loc.lon}`
-    + '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day'
+    + '&current=temperature_2m,weather_code,is_day'
     + '&timezone=auto';
   try {
     const res = await fetch(url);
@@ -779,7 +774,7 @@ async function fetchWeather() {
     state.weather = { data, fetchedAt: Date.now() };
     store.set('weather', state.weather);
   } catch {
-    if (!state.weather) $('#w-desc').textContent = 'Météo indisponible (réseau ?)';
+    if (!state.weather) weatherMessage('Météo indisponible (réseau ?)');
   } finally {
     weatherLoading = false;
     renderWeather();
@@ -830,7 +825,7 @@ function locateWithGps() {
     setLocation({ lat, lon, name, auto: true });
   }, () => {
     $('#loc-current').textContent = 'Position refusée : recherchez une ville ci-dessous.';
-    if (!state.location) $('#w-desc').textContent = 'Choisissez un lieu dans les réglages';
+    if (!state.location) weatherMessage('Choisissez un lieu dans les réglages');
   }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 3600000 });
 }
 

@@ -21,8 +21,8 @@ android {
         applicationId 'fr.horlogemeteo'
         minSdk 26
         targetSdk 36
-        versionCode 3
-        versionName '1.2'
+        versionCode 4
+        versionName '1.3'
     }
 
     // Fixed key so that each new APK installs over the previous one (settings and alarms kept).
