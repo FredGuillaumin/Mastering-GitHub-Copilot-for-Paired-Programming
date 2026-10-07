@@ -440,6 +440,11 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.READ_CALENDAR}, REQ_CALENDAR));
         }
 
+        @JavascriptInterface
+        public String calendarInfo() {
+            return hasCalendar() ? CalendarReader.info(MainActivity.this) : "{}";
+        }
+
         /** Events between two epoch times (strings, as JS numbers), as a JSON array. */
         @JavascriptInterface
         public String getEvents(String from, String to) {
