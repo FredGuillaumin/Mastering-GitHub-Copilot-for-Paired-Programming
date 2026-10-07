@@ -80,6 +80,28 @@
       <section>
         <h2>Affichage</h2>
         <label class="row">
+          <span>Luminosité selon l'heure</span>
+          <input id="dim-on" type="checkbox">
+        </label>
+        <div id="dim-settings">
+          <label class="row">
+            <span>Nuit à partir de</span>
+            <input id="dim-night" type="time">
+          </label>
+          <label class="row">
+            <span>Luminosité de nuit <span id="dim-night-val" class="val"></span></span>
+            <input id="dim-night-level" type="range" min="5" max="100" step="1">
+          </label>
+          <label class="row">
+            <span>Jour à partir de</span>
+            <input id="dim-day" type="time">
+          </label>
+          <label class="row">
+            <span>Luminosité de jour <span id="dim-day-val" class="val"></span></span>
+            <input id="dim-day-level" type="range" min="5" max="100" step="1">
+          </label>
+        </div>
+        <label id="brightness-row" class="row">
           <span>Luminosité</span>
           <input id="brightness" type="range" min="5" max="100" step="1">
         </label>
