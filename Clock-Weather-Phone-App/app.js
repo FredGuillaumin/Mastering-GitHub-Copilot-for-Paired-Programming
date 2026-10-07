@@ -619,8 +619,12 @@ function stopPreview() {
 const AGENDA_MAX = 3;
 const DAY_MS = 86400000;
 
+function calendarSupported() {
+  return !!(NATIVE && NATIVE.getEvents && NATIVE.hasCalendarPermission);
+}
+
 function agendaAvailable() {
-  return !!(NATIVE && NATIVE.getEvents && state.showAgenda && NATIVE.hasCalendarPermission());
+  return calendarSupported() && state.showAgenda && NATIVE.hasCalendarPermission();
 }
 
 // Local midnight of a time; all-day events are stored at UTC midnight.
@@ -886,7 +890,8 @@ function renderAndroidSettings() {
     ? 'Ouverture automatique autorisée.'
     : 'Pour s\'ouvrir toute seule, l\'application a besoin de l\'autorisation « Superposition sur d\'autres applis ».';
   $('#show-agenda').checked = state.showAgenda;
-  const calendar = NATIVE.hasCalendarPermission();
+  $('#show-agenda').closest('.row').hidden = !calendarSupported();
+  const calendar = calendarSupported() && NATIVE.hasCalendarPermission();
   $('#agenda-status').textContent = state.showAgenda && !calendar
     ? 'Accès à l\'agenda non autorisé : Paramètres → Applis → Horloge Météo → Autorisations → Agenda.'
     : '';
@@ -971,7 +976,7 @@ function wireUi() {
     $('#show-agenda').addEventListener('change', (e) => {
       state.showAgenda = e.target.checked;
       store.set('showAgenda', state.showAgenda);
-      if (state.showAgenda && !NATIVE.hasCalendarPermission()) NATIVE.requestCalendarPermission();
+      if (state.showAgenda && calendarSupported() && !NATIVE.hasCalendarPermission()) NATIVE.requestCalendarPermission();
       renderAndroidSettings();
       renderAgenda();
     });

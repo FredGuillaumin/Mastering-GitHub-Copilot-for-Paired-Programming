@@ -149,7 +149,7 @@ button, input { font: inherit; color: inherit; }
   gap: 0.1em;
   max-width: 100%;
 }
-.agenda[hidden] { display: none; }
+.agenda[hidden], .row[hidden] { display: none; }
 .event { display: flex; align-items: center; gap: 0.45em; max-width: 100%; white-space: nowrap; }
 .event .dot { width: 0.55em; height: 0.55em; border-radius: 50%; flex: none; }
 .event .when { flex: none; color: var(--fg); }
