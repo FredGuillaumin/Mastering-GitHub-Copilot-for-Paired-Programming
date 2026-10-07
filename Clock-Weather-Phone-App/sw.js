@@ -1,5 +1,5 @@
 // Offline cache for the app shell. Weather requests always go to the network.
-const CACHE = 'horloge-meteo-v15';
+const CACHE = 'horloge-meteo-v16';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {

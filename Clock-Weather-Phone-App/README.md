@@ -7,6 +7,7 @@ Application Android (**APK**) et application web (PWA) pour un téléphone posé
 - Fond noir, **très peu lumineux**. **Luminosité selon l'heure** : 20 % la nuit à partir de 22:30, 100 % le jour à partir de 07:00 (heures et niveaux réglables ; sinon luminosité fixe réglable). **Couleur paramétrable** : gris par défaut, rouge (préserve la vision de nuit), ambre, vert, bleu ou couleur libre. Symbole météo en couleurs (soleil jaune, pluie bleue…), désactivable.
 - **Réveils** : autant que voulu, choix des jours (sans jour = sonne une seule fois), volume progressif, vibration, répétition 9 min. Son au choix : **bips** ou **radio française** (France Inter, franceinfo, France Culture, France Musique, FIP, Mouv', RTL, Europe 1, RMC, Radio Classique, TSF Jazz, NRJ, RFM, Skyrock, Radio FG) ou n'importe quel flux en https. Sans réseau ou si la radio ne démarre pas en 12 s, les bips prennent le relais.
 - **Météo du moment** [Open-Meteo](https://open-meteo.com) (gratuit, sans clé) : ciel, température, ressenti, vent, humidité. Actualisée toutes les 15 min, dernières données conservées hors ligne.
+- **Agenda** (APK) : les 3 prochains événements d'aujourd'hui et de demain de l'agenda Google synchronisé sur le téléphone (aucune connexion à un compte nécessaire), sous la météo.
 - **Mode table de nuit** : l'écran reste allumé tant que le téléphone est **en charge** et se met en veille normalement quand on le débranche (réglable). Fonctionne hors ligne une fois installée.
 
 ## Application Android (APK) — recommandée sur Android

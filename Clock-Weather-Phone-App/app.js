@@ -20,6 +20,7 @@ const state = {
   clockStyle: store.get('clockStyle', 'analog'), // 'analog' | 'digital'
   color: store.get('color', '#a0a0a0'),          // text color
   secondHand: store.get('secondHand', true),     // red second hand on the analog dial
+  showAgenda: store.get('showAgenda', true),     // Android app: next events under the weather
   colorIcons: store.get('colorIcons', true),     // weather symbol in natural colors
   onlyCharging: store.get('onlyCharging', true),  // release the screen when unplugged
   alarms: store.get('alarms', []),             // [{id, time:'07:00', days:[1..5], enabled, label}]
@@ -139,6 +140,7 @@ function renderClock(now, force) {
   shownMinute = key;
   syncSecondHand();
   applyBrightness(); // brightness schedule (night / day)
+  renderAgenda(now);
   $('.clock').classList.toggle('analog', state.clockStyle === 'analog');
   $('.clock').classList.toggle('digital', state.clockStyle !== 'analog');
   $('#hhmm').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -612,6 +614,72 @@ function stopPreview() {
   if (!$('#settings').hidden) renderAlarmList();
 }
 
+/* ================= Agenda (Android app) ================= */
+// Next events of today and tomorrow, read from the calendars synced on the phone (Google Agenda).
+const AGENDA_MAX = 3;
+const DAY_MS = 86400000;
+
+function agendaAvailable() {
+  return !!(NATIVE && NATIVE.getEvents && state.showAgenda && NATIVE.hasCalendarPermission());
+}
+
+// Local midnight of a time; all-day events are stored at UTC midnight.
+function dayOf(ms, allDay) {
+  const d = new Date(ms);
+  return allDay ? new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+    : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function upcomingEvents(now) {
+  const today = dayOf(now.getTime(), false);
+  const after = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2); // end of tomorrow
+  let events = [];
+  try {
+    events = JSON.parse(NATIVE.getEvents(String(today.getTime() - DAY_MS), String(after.getTime() + DAY_MS)));
+  } catch { return []; }
+  return events.map((e) => {
+    if (e.allDay) {
+      const start = dayOf(e.begin, true), end = dayOf(e.end, true);
+      if (end <= today || start >= after) return null;
+      const day = start < today ? today : start;
+      return { ...e, day, sort: day.getTime() - 1 };
+    }
+    if (e.end <= now.getTime() || e.begin >= after.getTime()) return null;
+    const start = dayOf(e.begin, false);
+    return { ...e, day: start < today ? today : start, sort: Math.max(e.begin, today.getTime()) };
+  }).filter(Boolean).sort((a, b) => a.sort - b.sort).slice(0, AGENDA_MAX);
+}
+
+function renderAgenda(now = new Date()) {
+  const el = $('#agenda');
+  if (!agendaAvailable()) { el.hidden = true; return; }
+  const today = dayOf(now.getTime(), false).getTime();
+  const rows = upcomingEvents(now).map((e) => {
+    const tomorrow = e.day.getTime() > today;
+    const row = document.createElement('div');
+    row.className = 'event';
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.background = e.color || 'var(--fg-soft)';
+    const when = document.createElement('span');
+    when.className = 'when';
+    if (e.allDay) {
+      when.textContent = tomorrow ? 'demain' : 'aujourd\'hui';
+    } else {
+      const t = new Date(e.begin);
+      const time = e.begin <= now.getTime() ? 'en cours' : `${pad(t.getHours())}:${pad(t.getMinutes())}`;
+      when.textContent = tomorrow ? `demain ${time}` : time;
+    }
+    const title = document.createElement('span');
+    title.className = 'title';
+    title.textContent = e.title || '(sans titre)';
+    row.append(dot, when, title);
+    return row;
+  });
+  el.replaceChildren(...rows);
+  el.hidden = rows.length === 0;
+}
+
 /* ================= Weather ================= */
 const WEATHER_REFRESH_MS = 15 * 60 * 1000;
 
@@ -817,6 +885,11 @@ function renderAndroidSettings() {
   $('#overlay-status').textContent = overlay
     ? 'Ouverture automatique autorisée.'
     : 'Pour s\'ouvrir toute seule, l\'application a besoin de l\'autorisation « Superposition sur d\'autres applis ».';
+  $('#show-agenda').checked = state.showAgenda;
+  const calendar = NATIVE.hasCalendarPermission();
+  $('#agenda-status').textContent = state.showAgenda && !calendar
+    ? 'Accès à l\'agenda non autorisé : Paramètres → Applis → Horloge Météo → Autorisations → Agenda.'
+    : '';
   const fsi = NATIVE.canRingWhenLocked();
   $('#fsi-btn').hidden = fsi;
   $('#fsi-status').textContent = fsi ? '' : 'Pour sonner téléphone verrouillé, autorisez les « notifications plein écran ».';
@@ -895,6 +968,17 @@ function wireUi() {
   $('#fullscreen').addEventListener('click', enterFullscreen);
   if (NATIVE) {
     $('#auto-start').addEventListener('change', (e) => NATIVE.setAutoStart(e.target.checked));
+    $('#show-agenda').addEventListener('change', (e) => {
+      state.showAgenda = e.target.checked;
+      store.set('showAgenda', state.showAgenda);
+      if (state.showAgenda && !NATIVE.hasCalendarPermission()) NATIVE.requestCalendarPermission();
+      renderAndroidSettings();
+      renderAgenda();
+    });
+    window.onNativeCalendarPermission = () => {
+      if (!$('#settings').hidden) renderAndroidSettings();
+      renderAgenda();
+    };
     $('#overlay-btn').addEventListener('click', () => NATIVE.openOverlaySettings());
     $('#fsi-btn').addEventListener('click', () => NATIVE.openFullScreenSettings());
   }
@@ -936,6 +1020,7 @@ function onAppVisible() {
   tick();
   checkNativeRing();
   syncSecondHand();
+  renderAgenda();
   renderNextAlarm(new Date());
   maybeRefreshWeather();
   if (!$('#settings').hidden) renderAndroidSettings();
