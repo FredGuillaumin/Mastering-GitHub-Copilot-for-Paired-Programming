@@ -634,7 +634,7 @@ function dayOf(ms, allDay) {
     : new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-function upcomingEvents(now) {
+function upcomingEvents(now, max = AGENDA_MAX) {
   const today = dayOf(now.getTime(), false);
   const after = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2); // end of tomorrow
   let events = [];
@@ -651,7 +651,22 @@ function upcomingEvents(now) {
     if (e.end <= now.getTime() || e.begin >= after.getTime()) return null;
     const start = dayOf(e.begin, false);
     return { ...e, day: start < today ? today : start, sort: Math.max(e.begin, today.getTime()) };
-  }).filter(Boolean).sort((a, b) => a.sort - b.sort).slice(0, AGENDA_MAX);
+  }).filter(Boolean).sort((a, b) => a.sort - b.sort).slice(0, max);
+}
+
+// Settings: what the app finds on the phone, to understand an empty agenda.
+function agendaDiagnostic() {
+  let info = {};
+  try { info = JSON.parse(NATIVE.calendarInfo ? NATIVE.calendarInfo() : '{}'); } catch { info = {}; }
+  const count = upcomingEvents(new Date(), Infinity).length;
+  if (info.error) return `Erreur de lecture de l'agenda : ${info.error}`;
+  if (!info.calendars) {
+    return 'Aucun agenda trouvé sur le téléphone : vérifiez Paramètres → Mots de passe et comptes → Google → Synchronisation du compte → Agenda.';
+  }
+  const accounts = (info.accounts || []).join(', ');
+  const events = count === 0 ? 'aucun événement aujourd\'hui ni demain'
+    : `${count} événement${count > 1 ? 's' : ''} aujourd'hui et demain`;
+  return `${info.calendars} agenda${info.calendars > 1 ? 's' : ''} trouvé${info.calendars > 1 ? 's' : ''}${accounts ? ` (${accounts})` : ''} : ${events}.`;
 }
 
 function renderAgenda(now = new Date()) {
@@ -887,9 +902,9 @@ function renderAndroidSettings() {
   $('#show-agenda').checked = state.showAgenda;
   $('#show-agenda').closest('.row').hidden = !calendarSupported();
   const calendar = calendarSupported() && NATIVE.hasCalendarPermission();
-  $('#agenda-status').textContent = state.showAgenda && !calendar
-    ? 'Accès à l\'agenda non autorisé : Paramètres → Applis → Horloge Météo → Autorisations → Agenda.'
-    : '';
+  $('#agenda-status').textContent = !state.showAgenda ? ''
+    : !calendar ? 'Accès à l\'agenda non autorisé : Paramètres → Applis → Horloge Météo → Autorisations → Agenda.'
+    : agendaDiagnostic();
   const fsi = NATIVE.canRingWhenLocked();
   $('#fsi-btn').hidden = fsi;
   $('#fsi-status').textContent = fsi ? '' : 'Pour sonner téléphone verrouillé, autorisez les « notifications plein écran ».';

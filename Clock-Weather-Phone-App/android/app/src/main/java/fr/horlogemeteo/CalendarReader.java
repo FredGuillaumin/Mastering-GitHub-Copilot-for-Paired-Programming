@@ -20,6 +20,9 @@ final class CalendarReader {
 
     private static final int MAX_EVENTS = 20;
 
+    /** Last read error, shown in the settings to help diagnose (null when fine). */
+    private static volatile String lastError;
+
     /** JSON array of {title, begin, end, allDay, color} between two epoch times, earliest first. */
     static String events(Context c, long from, long to) {
         Uri.Builder uri = Instances.CONTENT_URI.buildUpon();
@@ -42,9 +45,39 @@ final class CalendarReader {
                 e.put("color", String.format("#%06x", cur.getInt(4) & 0xFFFFFF));
                 out.put(e);
             }
-        } catch (SecurityException | JSONException e) {
-            return "[]"; // permission withdrawn, or unreadable entry
+            lastError = null;
+        } catch (RuntimeException | JSONException e) { // permission withdrawn, provider error...
+            lastError = e.getClass().getSimpleName() + ": " + e.getMessage();
+            return "[]";
         }
         return out.toString();
+    }
+
+    /** Diagnostic for the settings: visible calendars on the phone and their accounts. */
+    static String info(Context c) {
+        JSONObject o = new JSONObject();
+        try {
+            JSONArray accounts = new JSONArray();
+            int visible = 0, total = 0;
+            String[] projection = {CalendarContract.Calendars.ACCOUNT_NAME, CalendarContract.Calendars.VISIBLE};
+            try (Cursor cur = c.getContentResolver().query(CalendarContract.Calendars.CONTENT_URI, projection, null, null, null)) {
+                while (cur != null && cur.moveToNext()) {
+                    total++;
+                    if (cur.getInt(1) != 1) continue;
+                    visible++;
+                    String account = cur.getString(0);
+                    boolean known = false;
+                    for (int i = 0; i < accounts.length(); i++) known |= accounts.getString(i).equals(account);
+                    if (!known && account != null) accounts.put(account);
+                }
+            }
+            o.put("calendars", visible);
+            o.put("hidden", total - visible);
+            o.put("accounts", accounts);
+            if (lastError != null) o.put("error", lastError);
+        } catch (RuntimeException | JSONException e) {
+            try { o.put("error", e.getClass().getSimpleName() + ": " + e.getMessage()); } catch (JSONException ignored) { }
+        }
+        return o.toString();
     }
 }
