@@ -271,7 +271,15 @@ svg .mask { fill: var(--bg); }
   min-height: 44px;
   border-bottom: 1px solid #141414;
 }
-.row input[type=range] { flex: 1; max-width: 60%; }
+.row input[type=range] { flex: 1; max-width: 55%; }
+.row input[type=time] {
+  background: #0a0a0a;
+  border: 1px solid #262626;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.row .val { color: #555; margin-left: 0.3em; }
+#dim-settings[hidden], #brightness-row[hidden] { display: none; }
 .text-btn {
   background: #0d0d0d;
   border: 1px solid #262626;

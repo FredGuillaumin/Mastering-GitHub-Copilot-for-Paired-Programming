@@ -14,7 +14,9 @@ const store = {
 };
 
 const state = {
-  brightness: store.get('brightness', 35),     // %
+  brightness: store.get('brightness', 35),     // %, used when the schedule below is off
+  // Brightness by time of day: nightLevel from `night`, dayLevel from `day`
+  dimSchedule: Object.assign({ on: true, night: '22:30', nightLevel: 20, day: '07:00', dayLevel: 100 }, store.get('dimSchedule', {})),
   clockStyle: store.get('clockStyle', 'analog'), // 'analog' | 'digital'
   color: store.get('color', '#a0a0a0'),          // text color
   secondHand: store.get('secondHand', true),     // red second hand on the analog dial
@@ -64,8 +66,39 @@ function setColor(color) {
   renderColorChoice();
 }
 
+function toMinutes(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function isNightTime(now) {
+  const s = state.dimSchedule;
+  const m = now.getHours() * 60 + now.getMinutes();
+  const night = toMinutes(s.night), day = toMinutes(s.day);
+  if (night === day) return false;
+  return night > day ? (m >= night || m < day) : (m >= night && m < day); // e.g. 22:30 -> 07:00
+}
+
+function currentBrightness(now) {
+  const s = state.dimSchedule;
+  if (!s.on) return state.brightness;
+  return isNightTime(now) ? s.nightLevel : s.dayLevel;
+}
+
+function setDim(level) {
+  document.documentElement.style.setProperty('--dim', (level / 100).toFixed(2));
+}
+
 function applyBrightness() {
-  document.documentElement.style.setProperty('--dim', (state.brightness / 100).toFixed(2));
+  setDim(currentBrightness(new Date()));
+}
+
+// While a level slider moves, show that level for a moment, then go back to the current one.
+let previewTimer = null;
+function previewBrightness(level) {
+  setDim(level);
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(applyBrightness, 2500);
 }
 
 /* ================= Clock ================= */
@@ -105,6 +138,7 @@ function renderClock(now, force) {
   if (key === shownMinute && !force) return;
   shownMinute = key;
   syncSecondHand();
+  applyBrightness(); // brightness schedule (night / day)
   $('.clock').classList.toggle('analog', state.clockStyle === 'analog');
   $('.clock').classList.toggle('digital', state.clockStyle !== 'analog');
   $('#hhmm').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -760,6 +794,7 @@ async function searchCity(query) {
 /* ================= Settings ================= */
 function openSettings() {
   $('#brightness').value = state.brightness;
+  renderDimSettings();
   $('#only-charging').checked = state.onlyCharging;
   $('#second-hand').checked = state.secondHand;
   $('#color-icons').checked = state.colorIcons;
@@ -793,6 +828,19 @@ function closeSettings() {
   renderNextAlarm(new Date());
 }
 
+function renderDimSettings() {
+  const s = state.dimSchedule;
+  $('#dim-on').checked = s.on;
+  $('#dim-settings').hidden = !s.on;
+  $('#brightness-row').hidden = s.on; // the manual slider only applies without the schedule
+  $('#dim-night').value = s.night;
+  $('#dim-day').value = s.day;
+  $('#dim-night-level').value = s.nightLevel;
+  $('#dim-day-level').value = s.dayLevel;
+  $('#dim-night-val').textContent = `${s.nightLevel} %`;
+  $('#dim-day-val').textContent = `${s.dayLevel} %`;
+}
+
 function renderStyleButtons() {
   document.querySelectorAll('.seg button').forEach((b) => b.classList.toggle('on', b.dataset.style === state.clockStyle));
 }
@@ -809,6 +857,18 @@ function wireUi() {
     applyBrightness();
     store.set('brightness', state.brightness);
   });
+  const saveDim = () => { store.set('dimSchedule', state.dimSchedule); renderDimSettings(); applyBrightness(); };
+  $('#dim-on').addEventListener('change', (e) => { state.dimSchedule.on = e.target.checked; saveDim(); });
+  $('#dim-night').addEventListener('change', (e) => { if (e.target.value) { state.dimSchedule.night = e.target.value; saveDim(); } });
+  $('#dim-day').addEventListener('change', (e) => { if (e.target.value) { state.dimSchedule.day = e.target.value; saveDim(); } });
+  for (const [id, key] of [['#dim-night-level', 'nightLevel'], ['#dim-day-level', 'dayLevel']]) {
+    $(id).addEventListener('input', (e) => {
+      state.dimSchedule[key] = Number(e.target.value);
+      store.set('dimSchedule', state.dimSchedule);
+      renderDimSettings();
+      previewBrightness(state.dimSchedule[key]);
+    });
+  }
   document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
     state.clockStyle = b.dataset.style;
     store.set('clockStyle', state.clockStyle);
