@@ -57,6 +57,15 @@
     </button>
   </main>
 
+  <!-- Sleep mode: only a sleep symbol during a chosen time slot (a tap shows the clock again) -->
+  <div id="sleep" class="overlay sleep" hidden>
+    <svg class="sleep-icon" viewBox="0 0 64 64" aria-label="Mode sommeil">
+      <path d="M30 14A18 18 0 1 0 50 40A14 14 0 0 1 30 14Z"/>
+      <path d="M40 10h8l-8 8h8"/>
+      <path d="M50 22h5l-5 5h5"/>
+    </svg>
+  </div>
+
   <!-- Ringing alarm -->
   <div id="ring" class="overlay ring" hidden>
     <div class="ring-time" id="ring-time">--:--</div>
@@ -98,6 +107,21 @@
             <span>Luminosité de jour <span id="dim-day-val" class="val"></span></span>
             <input id="dim-day-level" type="range" min="5" max="100" step="1">
           </label>
+        </div>
+        <label class="row">
+          <span>Mode sommeil : symbole seul</span>
+          <input id="sleep-on" type="checkbox">
+        </label>
+        <div id="sleep-settings">
+          <label class="row">
+            <span>De</span>
+            <input id="sleep-from" type="time">
+          </label>
+          <label class="row">
+            <span>À</span>
+            <input id="sleep-to" type="time">
+          </label>
+          <p class="hint">Un toucher sur l'écran réaffiche l'horloge pendant 15 secondes. Le réveil sonne normalement.</p>
         </div>
         <label id="brightness-row" class="row">
           <span>Luminosité</span>

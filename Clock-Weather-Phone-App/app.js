@@ -16,6 +16,8 @@ const store = {
 const state = {
   brightness: store.get('brightness', 35),     // %, used when the schedule below is off
   // Brightness by time of day: nightLevel from `night`, dayLevel from `day`
+  // Sleep mode: only a sleep symbol between `from` and `to`
+  sleep: Object.assign({ on: true, from: '23:00', to: '06:30' }, store.get('sleep', {})),
   dimSchedule: Object.assign({ on: true, night: '22:30', nightLevel: 20, day: '07:00', dayLevel: 100 }, store.get('dimSchedule', {})),
   clockStyle: store.get('clockStyle', 'analog'), // 'analog' | 'digital'
   color: store.get('color', '#a0a0a0'),          // text color
@@ -72,12 +74,46 @@ function toMinutes(hhmm) {
   return h * 60 + m;
 }
 
-function isNightTime(now) {
-  const s = state.dimSchedule;
+// Is `now` inside the daily slot from -> to (which may go past midnight, e.g. 22:30 -> 07:00)?
+function inTimeSlot(now, from, to) {
   const m = now.getHours() * 60 + now.getMinutes();
-  const night = toMinutes(s.night), day = toMinutes(s.day);
-  if (night === day) return false;
-  return night > day ? (m >= night || m < day) : (m >= night && m < day); // e.g. 22:30 -> 07:00
+  const a = toMinutes(from), b = toMinutes(to);
+  if (a === b) return false;
+  return a > b ? (m >= a || m < b) : (m >= a && m < b);
+}
+
+function isNightTime(now) {
+  return inTimeSlot(now, state.dimSchedule.night, state.dimSchedule.day);
+}
+
+/* ================= Sleep mode ================= */
+const SLEEP_PEEK_MS = 15000;   // a tap shows the clock for that long
+let sleepPeekUntil = 0;
+let sleepTimer = null;
+
+function renderSleep(now = new Date()) {
+  const s = state.sleep;
+  const show = s.on && inTimeSlot(now, s.from, s.to) && !ringing
+    && $('#settings').hidden && Date.now() >= sleepPeekUntil;
+  const el = $('#sleep');
+  if (show && el.hidden) {
+    // a slightly different place each time it appears (and every few minutes, see renderClock)
+    moveSleepIcon();
+  }
+  el.hidden = !show;
+}
+
+function moveSleepIcon() {
+  const dx = Math.round((Math.random() - 0.5) * 30), dy = Math.round((Math.random() - 0.5) * 30);
+  $('.sleep-icon').style.transform = `translate(${dx}vmin, ${dy}vmin)`;
+}
+
+function peekThroughSleep() {
+  if ($('#sleep').hidden) return;
+  sleepPeekUntil = Date.now() + SLEEP_PEEK_MS;
+  renderSleep();
+  clearTimeout(sleepTimer);
+  sleepTimer = setTimeout(() => renderSleep(), SLEEP_PEEK_MS + 50);
 }
 
 function currentBrightness(now) {
@@ -140,6 +176,8 @@ function renderClock(now, force) {
   shownMinute = key;
   syncSecondHand();
   applyBrightness(); // brightness schedule (night / day)
+  renderSleep(now);
+  if (!$('#sleep').hidden && now.getMinutes() % 5 === 0) moveSleepIcon();
   renderAgenda(now);
   $('.clock').classList.toggle('analog', state.clockStyle === 'analog');
   $('.clock').classList.toggle('digital', state.clockStyle !== 'analog');
@@ -416,6 +454,7 @@ function startRinging(alarm) {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
   };
   ringing = ring;
+  renderSleep();
   updateWakeLock();
   if (NATIVE) NATIVE.ringStarted(); // makes sure the media volume is audible
   if (url) {
@@ -443,6 +482,7 @@ function stopRinging() {
   ringing = null;
   if (NATIVE) NATIVE.ringStopped();
   $('#ring').hidden = true;
+  renderSleep();
   renderNextAlarm(new Date());
   updateWakeLock();
 }
@@ -877,6 +917,7 @@ async function searchCity(query) {
 function openSettings() {
   $('#brightness').value = state.brightness;
   renderDimSettings();
+  renderSleepSettings();
   $('#only-charging').checked = state.onlyCharging;
   $('#second-hand').checked = state.secondHand;
   $('#color-icons').checked = state.colorIcons;
@@ -914,6 +955,17 @@ function closeSettings() {
   $('#settings').hidden = true;
   stopPreview();
   renderNextAlarm(new Date());
+  sleepPeekUntil = Date.now() + SLEEP_PEEK_MS; // leave the clock visible a moment after the settings
+  clearTimeout(sleepTimer);
+  sleepTimer = setTimeout(() => renderSleep(), SLEEP_PEEK_MS + 50);
+}
+
+function renderSleepSettings() {
+  const s = state.sleep;
+  $('#sleep-on').checked = s.on;
+  $('#sleep-settings').hidden = !s.on;
+  $('#sleep-from').value = s.from;
+  $('#sleep-to').value = s.to;
 }
 
 function renderDimSettings() {
@@ -945,6 +997,12 @@ function wireUi() {
     applyBrightness();
     store.set('brightness', state.brightness);
   });
+  const saveSleep = () => { store.set('sleep', state.sleep); renderSleepSettings(); };
+  $('#sleep-on').addEventListener('change', (e) => { state.sleep.on = e.target.checked; saveSleep(); });
+  $('#sleep-from').addEventListener('change', (e) => { if (e.target.value) { state.sleep.from = e.target.value; saveSleep(); } });
+  $('#sleep-to').addEventListener('change', (e) => { if (e.target.value) { state.sleep.to = e.target.value; saveSleep(); } });
+  // A tap during sleep mode shows the clock for a moment
+  $('#sleep').addEventListener('pointerdown', peekThroughSleep);
   const saveDim = () => { store.set('dimSchedule', state.dimSchedule); renderDimSettings(); applyBrightness(); };
   $('#dim-on').addEventListener('change', (e) => { state.dimSchedule.on = e.target.checked; saveDim(); });
   $('#dim-night').addEventListener('change', (e) => { if (e.target.value) { state.dimSchedule.night = e.target.value; saveDim(); } });
@@ -1031,6 +1089,7 @@ function wireUi() {
 }
 
 function onAppVisible() {
+  renderSleep();
   updateWakeLock();
   tick();
   checkNativeRing();
