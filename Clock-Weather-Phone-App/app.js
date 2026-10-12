@@ -927,6 +927,9 @@ function openSettings() {
   renderAlarmList();
   renderLocation();
   renderAndroidSettings();
+  $('#app-version').textContent = NATIVE && NATIVE.getVersion
+    ? `Horloge Météo ${NATIVE.getVersion()} · application Android`
+    : 'Horloge Météo · version web';
   $('#settings').hidden = false;
 }
 
