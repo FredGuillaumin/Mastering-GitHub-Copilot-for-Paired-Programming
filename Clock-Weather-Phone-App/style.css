@@ -223,9 +223,10 @@ svg .mask { fill: var(--bg); }
 }
 .sleep-icon {
   opacity: var(--dim); /* dimmed like the rest; the black background stays opaque */
-  width: min(22vmin, 140px);
-  height: min(22vmin, 140px);
-  stroke-width: 2.2;
+  /* fills the screen (keeps its proportions), small margin for the anti burn-in shift */
+  width: 94vw;
+  height: 90vh;
+  stroke-width: 1.4;
   transition: transform 2s ease;
 }
 #sleep-settings[hidden] { display: none; }

@@ -104,8 +104,9 @@ function renderSleep(now = new Date()) {
 }
 
 function moveSleepIcon() {
-  const dx = Math.round((Math.random() - 0.5) * 30), dy = Math.round((Math.random() - 0.5) * 30);
-  $('.sleep-icon').style.transform = `translate(${dx}vmin, ${dy}vmin)`;
+  // a few pixels are enough against burn-in; the symbol fills almost the whole screen
+  const dx = Math.round((Math.random() - 0.5) * 4), dy = Math.round((Math.random() - 0.5) * 6);
+  $('.sleep-icon').style.transform = `translate(${dx}vw, ${dy}vh)`;
 }
 
 function peekThroughSleep() {
