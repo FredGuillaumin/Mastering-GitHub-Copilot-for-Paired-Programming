@@ -385,6 +385,16 @@ public class MainActivity extends Activity {
             volumeBeforeRing = -1;
         }
 
+        /** versionName of the installed APK (e.g. "1.7"), shown at the bottom of the settings. */
+        @JavascriptInterface
+        public String getVersion() {
+            try {
+                return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            } catch (PackageManager.NameNotFoundException e) {
+                return "?";
+            }
+        }
+
         @JavascriptInterface
         public boolean getAutoStart() {
             return App.autoStart(MainActivity.this);
